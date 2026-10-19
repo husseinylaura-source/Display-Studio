@@ -193,3 +193,20 @@ dialog form{margin-top:14px;display:flex;justify-content:flex-end}
 .liblist{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
 .libgroup{font-size:11.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
 .liblist .ibitems{padding:4px 0}
+
+.uploadzone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:2.5px dashed var(--accent);border-radius:14px;background:var(--soft);cursor:pointer;color:var(--fg)}
+.uploadzone:hover,.uploadzone.over{background:var(--surface);border-style:solid}
+.uploadzone svg{width:40px;height:40px;color:var(--accent)}
+.uploadzone b{font-size:16px;font-weight:900}
+.uploadzone span{font-size:13px;color:var(--muted);max-width:40ch}
+.mypics{display:flex;flex-direction:column;gap:8px}
+.mypics > b{font-size:13px;font-weight:900}
+.mypicgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.mypic{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:5px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.mypic img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;display:block}
+.mypic input{font:inherit;font-size:12px;font-weight:600;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);width:100%;min-width:0}
+.mypic .acts{display:flex;flex-direction:column;gap:4px}
+.mypic .acts select{width:100%;min-width:0;font:inherit;font-size:11.5px;font-weight:700;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);padding:3px}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.or::before,.or::after{content:'';flex:1;height:1px;background:var(--line)}
+.barbtns{display:flex;gap:8px;flex-wrap:wrap}

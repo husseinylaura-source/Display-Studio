@@ -145,6 +145,17 @@
         </div>
 
         <div class="pane" id="pane-pics" role="tabpanel" aria-labelledby="tab-pics">
+          <label class="uploadzone" id="uploadZone" for="picUpload2">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <b>Upload your own pictures</b>
+            <span>Click to choose, or drop pictures here. Class photos, student work or logos. You can choose several at once.</span>
+          </label>
+          <input type="file" id="picUpload2" accept="image/*" multiple hidden>
+          <div class="mypics" id="myPics" hidden>
+            <b>Your pictures on this board</b>
+            <div class="mypicgrid" id="myPicGrid"></div>
+          </div>
+          <div class="or"><span>or search free pictures</span></div>
           <form class="searchrow" id="picForm">
             <input type="search" id="picQuery" placeholder="Search free pictures, e.g. clouds" aria-label="Search pictures">
             <button class="btn" type="submit">Search</button>
@@ -221,7 +232,11 @@
         <canvas id="boardCanvas" aria-label="Preview of the bulletin board. Drag pieces to move them."></canvas>
         <div class="bar">
           <p>Drag any piece to move it.</p>
-          <button class="btn ghost sm" id="resetPos" type="button">Reset positions</button>
+          <div class="barbtns">
+            <label class="btn sm" for="boardUpload">Add pictures</label>
+            <input type="file" id="boardUpload" accept="image/*" multiple hidden>
+            <button class="btn ghost sm" id="resetPos" type="button">Reset positions</button>
+          </div>
         </div>
       </div>
 

@@ -751,7 +751,7 @@ function renderPieces(){
     wrap.appendChild(card);
   }
 }
-function renderAll(){ renderTemplates(); renderBoard(); renderLetters(); renderPieces(); saveSoon(); }
+function renderAll(){ renderTemplates(); renderBoard(); renderLetters(); renderPieces(); if (typeof renderMyPics === 'function') renderMyPics(); saveSoon(); }
 
 /* ---------- PDF ---------- */
 function pageCanvas(aspect, longSide=2200){
@@ -1081,7 +1081,40 @@ async function addPictureFile(file, credit = ''){
   catch (e) { toast('That picture could not be read. Try a JPG or PNG.'); }
   finally { URL.revokeObjectURL(url); }
 }
-$('#picUpload').addEventListener('change', async e => { for (const f of [...e.target.files]) await addPictureFile(f); e.target.value = ''; });
+async function uploadMany(files){
+  files = [...files].filter(f => f && (f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name)));
+  if (!files.length){ toast('Choose a picture file (JPG, PNG, GIF or WEBP).'); return; }
+  let ok = 0;
+  for (const [i, f] of files.entries()){
+    if (files.length > 1) toast(`Adding picture ${i+1} of ${files.length}…`);
+    const before = state.extras.length; await addPictureFile(f); if (state.extras.length > before) ok++;
+  }
+  if (ok) toast(ok === 1 ? 'Picture added. Drag it on the board to place it.' : `${ok} pictures added. Drag them on the board to place them.`);
+  else if (files.some(f => /\.(heic|heif)$/i.test(f.name))) toast('This browser cannot open HEIC photos. On iPhone choose "Most Compatible" in Camera settings, or send the photo as JPG.');
+}
+['picUpload','picUpload2','boardUpload'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', async e => { await uploadMany(e.target.files); e.target.value = ''; }); });
+const uz = document.getElementById('uploadZone');
+if (uz){ ['dragover','dragenter'].forEach(t => uz.addEventListener(t, () => uz.classList.add('over'))); ['dragleave','drop'].forEach(t => uz.addEventListener(t, () => uz.classList.remove('over'))); }
+
+function renderMyPics(){
+  const wrap = document.getElementById('myPics'); if (!wrap) return;
+  const pics = state.extras.filter(e => e.kind === 'photo');
+  wrap.hidden = !pics.length; const grid = document.getElementById('myPicGrid'); grid.innerHTML = '';
+  for (const ex of pics){
+    const card = document.createElement('div'); card.className = 'mypic';
+    const im = document.createElement('img'); im.src = ex.src || (ex.img && ex.img.src) || ''; im.alt = ex.caption || 'Your picture';
+    const cap = document.createElement('input'); cap.type = 'text'; cap.maxLength = 60; cap.placeholder = 'Add a caption'; cap.value = ex.caption || ''; cap.id = 'mpcap-' + ex.id; cap.setAttribute('aria-label', 'Caption');
+    cap.addEventListener('input', () => { ex.caption = cap.value; renderBoard(); });
+    cap.addEventListener('change', () => { renderAll(); });
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const sz = document.createElement('select'); sz.id = 'mpsz-' + ex.id; sz.setAttribute('aria-label', 'Size on the board');
+    [[.8,'Small'],[1,'Medium'],[1.6,'Large'],[2.4,'Extra large']].forEach(([v,l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; if (Math.abs((ex.scale||1) - v) < .01) o.selected = true; sz.appendChild(o); });
+    sz.addEventListener('change', () => { ex.scale = +sz.value; renderAll(); });
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'mini'; rm.textContent = 'Remove'; rm.setAttribute('aria-label', 'Remove picture');
+    rm.addEventListener('click', () => removeExtra(ex.id));
+    acts.append(sz, rm); card.append(im, cap, acts); grid.appendChild(card);
+  }
+}
 
 /* Google Images link follows the search box and the free-to-reuse tick */
 function updateGoogle(){

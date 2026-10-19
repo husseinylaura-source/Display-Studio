@@ -112,7 +112,7 @@ With this part, the button becomes **Write my board content**. It writes facts, 
   - **Wikimedia Commons**.
 - Every picture from search keeps its credit (title, creator and licence). The credit prints under the picture and on its PDF page.
 - **Google Images:** the site opens Google with the teacher's search. With **Only show pictures that are free to reuse** ticked, Google filters by licence. The teacher copies a picture and presses Ctrl+V (⌘+V on a Mac) on the site.
-- **Upload** and **drag and drop** work for class photos and student work.
+- **Upload your own pictures:** use the big upload box at the top of the Pictures tab, the **Add pictures** button under the board, drag files onto the page, or paste a copied picture. Several pictures can be added at once, and each one gets a caption, a size and a Remove button.
 - Pictures always stay on the teacher's own computer. Nothing is uploaded to any server.
 - A few websites block their pictures from being printed by other sites. If that happens, the site says so and gives a link to save the picture and upload it instead.
 - Teachers should check every picture before printing, as search results come from open libraries.
