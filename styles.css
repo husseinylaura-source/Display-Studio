@@ -210,3 +210,13 @@ dialog form{margin-top:14px;display:flex;justify-content:flex-end}
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
 .or::before,.or::after{content:'';flex:1;height:1px;background:var(--line)}
 .barbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+.boardtools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.btn.addpic{font-size:16px;padding:12px 18px}
+.btn.addpic svg{width:22px;height:22px}
+.boardtools .tip{margin:0;color:var(--muted);font-size:13.5px;font-weight:700}
+.selbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--soft);border:2px solid var(--accent);border-radius:12px;padding:8px 12px}
+.selbar b{font-size:14px;font-weight:900}
+.selhint{font-size:13px;color:var(--muted)}
+.selbtns{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.selbtns .mini{font-size:13px;padding:6px 12px}

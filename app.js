@@ -584,13 +584,18 @@ function drawBoard(c, W, H, p, tplKey){
   for (let y=0; y<=1000; y+=40){ c.beginPath(); c.arc(0,y,22,0,Math.PI*2); c.arc(1600,y,22,0,Math.PI*2); c.fill(); }
   drawTitle(c, state.title, 800, 38, 1420, 168, palFor());
   const rects = boardRects(tplKey);
-  if (drag){ const di = rects.findIndex(r => r.key === drag.key); if (di >= 0) rects.push(rects.splice(di, 1)[0]); }
+  const top = drag ? drag.key : (drawingMain ? selKey : null);
+  if (top){ const di = rects.findIndex(r => r.key === top); if (di >= 0) rects.push(rects.splice(di, 1)[0]); }
   for (const r of rects){
     c.save(); c.translate(r.x + r.w/2, r.y + r.h/2); c.rotate(r.rot); c.translate(-r.w/2, -r.h/2);
     if (drag && drag.key === r.key){ c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 24; c.shadowOffsetY = 10; }
     const pal = palFor(r.colorKey);
     if (r.extra) EXTRA[r.extra.kind].draw(c, r.w, r.h, pal, r.extra);
     else TYPES[r.type].pages(content, r.idx)[0].draw(c, r.w, r.h, pal, content, r.idx);
+    if (drawingMain && selKey === r.key){
+      c.shadowColor = 'transparent'; c.setLineDash([16, 10]); c.lineWidth = 6; c.strokeStyle = '#ffcc33';
+      c.strokeRect(-8, -8, r.w + 16, r.h + 16); c.setLineDash([]);
+    }
     c.restore();
   }
   c.restore();
@@ -637,7 +642,8 @@ function renderTemplates(){
 }
 function renderBoard(){
   const cv = $('#boardCanvas'); const w = cv.clientWidth || 900;
-  const ctx = sizeCanvas(cv, w, 1.6); drawBoard(ctx, cv.width, cv.height, PAL[state.backing], state.template);
+  const ctx = sizeCanvas(cv, w, 1.6); drawingMain = true; try { drawBoard(ctx, cv.width, cv.height, PAL[state.backing], state.template); } finally { drawingMain = false; }
+  updateSelBar();
 }
 function renderLetters(){
   const wrap = $('#letters'); wrap.innerHTML = '';
@@ -801,12 +807,34 @@ const statusEl = $('#status');
 const setStatus = (msg, warn=false) => { statusEl.textContent = msg; statusEl.classList.toggle('warn', warn); };
 
 /* ---------- drag on the board ---------- */
-let drag = null;
+let drag = null, selKey = null, drawingMain = false;
+function selRect(){ return selKey ? boardRects(state.template).find(r => r.key === selKey) : null; }
+function rectName(r){ if (r.extra) return r.extra.kind === 'photo' ? 'Picture' + (r.extra.caption ? ': ' + r.extra.caption : '') : r.extra.kind === 'ib' ? r.extra.label : (r.extra.label || EXTRA[r.extra.kind].name);
+  return TYPES[r.type].name; }
+function updateSelBar(){
+  const bar = document.getElementById('selBar'); if (!bar) return;
+  const r = selRect(); if (!r){ bar.hidden = true; return; }
+  bar.hidden = false; document.getElementById('selName').textContent = rectName(r);
+  ['selSmaller','selBigger','selRemove'].forEach(id => { document.getElementById(id).hidden = !r.extra; });
+}
+function selectKey(k){ selKey = k; renderBoard(); }
+function resizeSel(f){ const r = selRect(); if (!r || !r.extra) return;
+  r.extra.scale = Math.max(.5, Math.min(4, (r.extra.scale || 1) * f)); renderAll(); }
+document.getElementById('selBigger').addEventListener('click', () => resizeSel(1.25));
+document.getElementById('selSmaller').addEventListener('click', () => resizeSel(0.8));
+document.getElementById('selRemove').addEventListener('click', () => { const r = selRect(); if (r && r.extra){ selKey = null; removeExtra(r.extra.id); } });
+document.getElementById('selDone').addEventListener('click', () => selectKey(null));
+function centreExtra(ex){
+  const k = state.template + '|x|' + ex.id; delete state.pos[k];
+  const r = boardRects(state.template).find(q => q.key === k); if (!r) return;
+  state.pos[k] = [800 - (r.x + r.w/2), 590 - (r.y + r.h/2)]; selKey = k;
+}
 const boardCv = document.getElementById('boardCanvas');
 function boardPoint(e){ const r = boardCv.getBoundingClientRect(); return [(e.clientX - r.left) * 1600 / r.width, (e.clientY - r.top) * 1000 / r.height]; }
 function hitPiece(x, y){ const rs = boardRects(state.template); for (let i = rs.length - 1; i >= 0; i--){ const r = rs[i]; if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return r; } return null; }
 boardCv.addEventListener('pointerdown', e => {
-  const [x, y] = boardPoint(e); const r = hitPiece(x, y); if (!r) return;
+  const [x, y] = boardPoint(e); const r = hitPiece(x, y); if (!r){ if (selKey) selectKey(null); return; }
+  selKey = r.key;
   drag = {key: r.key, sx: x, sy: y, o: (state.pos[r.key] || [0,0]).slice()};
   boardCv.setPointerCapture(e.pointerId); boardCv.style.cursor = 'grabbing'; renderBoard();
 });
@@ -816,7 +844,13 @@ boardCv.addEventListener('pointermove', e => {
   const nx = Math.max(-1500, Math.min(1500, drag.o[0] + x - drag.sx)), ny = Math.max(-1000, Math.min(1000, drag.o[1] + y - drag.sy));
   state.pos[drag.key] = [nx, ny]; renderBoard();
 });
-const endDrag = () => { if (!drag) return; drag = null; boardCv.style.cursor = 'grab'; renderBoard(); renderTemplates(); };
+document.addEventListener('keydown', e => {
+  if (!selKey || /input|textarea|select/i.test((e.target.tagName || ''))) return;
+  const d = {ArrowLeft:[-10,0], ArrowRight:[10,0], ArrowUp:[0,-10], ArrowDown:[0,10]}[e.key];
+  if (d){ e.preventDefault(); const o = state.pos[selKey] || [0,0]; state.pos[selKey] = [o[0] + d[0]*(e.shiftKey?4:1), o[1] + d[1]*(e.shiftKey?4:1)]; renderBoard(); saveSoon(); }
+  else if (e.key === 'Escape') selectKey(null);
+});
+const endDrag = () => { if (!drag) return; drag = null; boardCv.style.cursor = 'grab'; renderBoard(); renderTemplates(); saveSoon(); };
 boardCv.addEventListener('pointerup', endDrag); boardCv.addEventListener('pointercancel', endDrag);
 document.getElementById('resetPos').addEventListener('click', () => {
   Object.keys(state.pos).forEach(k => { if (k.startsWith(state.template + '|')) delete state.pos[k]; }); renderBoard(); renderTemplates();
@@ -1055,7 +1089,9 @@ $('#picMoreBtn').addEventListener('click', () => { picState.page++; searchPictur
 
 async function addPhotoFromSrc(src, meta = {}){
   const img = await loadImg(src);
-  addExtra({kind:'photo', src, img, ratio: img.naturalWidth / img.naturalHeight, caption: $('#picCaption').value.trim(), credit: meta.credit || '', link: meta.link || '', scale: 1.6});
+  const ex = {kind:'photo', src, img, ratio: img.naturalWidth / img.naturalHeight, caption: $('#picCaption').value.trim(), credit: meta.credit || '', link: meta.link || '', scale: 1.6};
+  ex.id = 'e' + (++extraSeq); state.extras.push(ex); centreExtra(ex); renderAll(); renderIB();
+  if (window.innerWidth <= 980) document.getElementById('boardCanvas').scrollIntoView({behavior:'smooth', block:'center'});
   $('#picCaption').value = '';
 }
 async function addRemotePicture(r, btn){

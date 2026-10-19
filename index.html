@@ -229,14 +229,28 @@
     <!-- ============ PREVIEW ============ -->
     <div class="main">
       <div class="board">
+        <div class="boardtools">
+          <label class="btn addpic" for="boardUpload">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="M21 16l-5-5-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            Add pictures from file
+          </label>
+          <input type="file" id="boardUpload" accept="image/*" multiple hidden>
+          <p class="tip">Then drag the picture anywhere on the board.</p>
+        </div>
+        <div class="selbar" id="selBar" hidden>
+          <b id="selName">Picture</b>
+          <span class="selhint">Drag it to move it.</span>
+          <span class="selbtns">
+            <button class="mini" type="button" id="selSmaller" aria-label="Make smaller">− Smaller</button>
+            <button class="mini" type="button" id="selBigger" aria-label="Make bigger">+ Bigger</button>
+            <button class="mini" type="button" id="selRemove">Remove</button>
+            <button class="mini" type="button" id="selDone">Done</button>
+          </span>
+        </div>
         <canvas id="boardCanvas" aria-label="Preview of the bulletin board. Drag pieces to move them."></canvas>
         <div class="bar">
-          <p>Drag any piece to move it.</p>
-          <div class="barbtns">
-            <label class="btn sm" for="boardUpload">Add pictures</label>
-            <input type="file" id="boardUpload" accept="image/*" multiple hidden>
-            <button class="btn ghost sm" id="resetPos" type="button">Reset positions</button>
-          </div>
+          <p>Tap any piece to select it, then drag to move it.</p>
+          <button class="btn ghost sm" id="resetPos" type="button">Reset positions</button>
         </div>
       </div>
 
