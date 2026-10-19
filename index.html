@@ -166,6 +166,25 @@
         <h2 id="s3h"><span class="num">3</span> Pick a layout</h2>
         <p class="hint">Every layout mixes interactive, celebrating and educational pieces. You can drag any piece on the board preview to move it.</p>
         <div class="templates" id="templates"></div>
+        <div class="mylayouts">
+          <b>Make your own</b>
+          <div class="barbtns">
+            <button class="btn sm" type="button" id="newLayoutBtn">+ Design my own layout</button>
+            <button class="btn ghost sm" type="button" id="saveLayoutBtn">Save this arrangement as my layout</button>
+          </div>
+          <p class="hint">Your layouts are kept in this browser and appear under <b>My layouts</b> for every topic board. Save a board file to share them.</p>
+        </div>
+        <div class="mytools" id="myLayoutTools" hidden>
+          <label class="f">Layout name
+            <input type="text" id="layoutName" maxlength="40" dir="auto">
+          </label>
+          <div>
+            <b class="palhead">Add pieces to your layout</b>
+            <div class="ibitems" id="piecePalette"></div>
+            <p class="hint">Each piece appears in the middle of the board. Drag it into place, and use <b>+ Bigger</b>, <b>− Smaller</b> or <b>Remove</b> above the board.</p>
+          </div>
+          <button class="mini" type="button" id="deleteLayoutBtn">Delete this layout</button>
+        </div>
         <div class="stepnav"><button class="btn ghost" type="button" data-prev>Back</button><button class="btn" type="button" data-next>Next: pictures &amp; extras</button></div>
       </section>
 

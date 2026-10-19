@@ -86,6 +86,7 @@ function palFor(pieceKey){
   return {...PAL[state.backing], ...famOf(k)};
 }
 const pieceKey = (tpl, type, idx) => `${tpl}|${type}|${idx}`;
+const itemKey = (tpl, type, idx, n) => (typeof TEMPLATES !== 'undefined' && TEMPLATES[tpl] && TEMPLATES[tpl].custom) ? `${tpl}|${type}|${idx}|${n}` : pieceKey(tpl, type, idx);
 
 let content = JSON.parse(JSON.stringify(EXAMPLE));
 let state = {lang:'en', boardType:'topic', topicTemplate:'grid',
@@ -667,11 +668,11 @@ function freeSlots(tplKey){
 /* ---------- board ---------- */
 function boardRects(tplKey){
   const out = [];
-  for (const [type, idx, x, y, w, h, rot] of TEMPLATES[tplKey].items){
-    const key = pieceKey(tplKey, type, idx), o = state.pos[key] || [0,0];
+  TEMPLATES[tplKey].items.forEach(([type, idx, x, y, w, h, rot], n) => {
+    const key = itemKey(tplKey, type, idx, n), o = state.pos[key] || [0,0];
     const mx = state.lang === 'ar' ? 1600 - x - w : x;   // Arabic boards read right to left
-    out.push({key, colorKey:key, type, idx, x:mx+o[0], y:y+o[1], w, h, rot: state.lang === 'ar' ? -rot : rot});
-  }
+    out.push({key, colorKey:key, type, idx, n, x:mx+o[0], y:y+o[1], w, h, rot: state.lang === 'ar' ? -rot : rot});
+  });
   const slots = freeSlots(tplKey);
   state.extras.forEach((ex, i) => {
     const s = slots[i] || [740 + (i % 5)*14, 440 + (i % 5)*14, 110];
@@ -718,10 +719,10 @@ function sizeCanvas(cv, cssW, aspect){
 /* ---------- pieces list ---------- */
 function pieceList(){
   const out = [];
-  for (const [type, idx] of TEMPLATES[state.template].items){
+  TEMPLATES[state.template].items.forEach(([type, idx], n) => {
     const T = TYPES[type];
-    T.pages(content, idx).forEach(pg => out.push({type, idx, key: pieceKey(state.template, type, idx), name: T.name + (pg.label ? ' · ' + pg.label : ''), tag: T.tag, page: pg}));
-  }
+    T.pages(content, idx).forEach(pg => out.push({type, idx, key: itemKey(state.template, type, idx, n), name: T.name + (pg.label ? ' · ' + pg.label : ''), tag: T.tag, page: pg}));
+  });
   for (const ex of state.extras){
     const E = EXTRA[ex.kind];
     out.push({type:'extra', idx:ex.id, key:'x|' + ex.id, extra:ex, tag:E.tag,
@@ -731,18 +732,85 @@ function pieceList(){
   return out;
 }
 
+/* ---------- my layouts (teacher-designed) ---------- */
+const LAYOUT_KEY = 'bbs-layouts-v1';
+const PIECE_SIZES = {banner:[880,150], bigq:[520,347], fact:[260,320], vocab:[300,240], flap:[250,227], pocket:[360,277], voice:[240,185], star:[250,250], frame:[580,446]};
+const PIECE_MAX = {banner:1, bigq:1, fact:4, vocab:4, flap:3, pocket:1, voice:3, star:1, frame:1};
+const PIECE_LABEL = {banner:'Subtitle banner', bigq:'Big question', fact:'Fact card', vocab:'Key word card', flap:'Lift-the-flap', pocket:'Challenge pocket', voice:'Voice bubble', star:'Celebration star', frame:'Work frame'};
+let myLayouts = [];
+try { myLayouts = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '[]') || []; } catch (e) { myLayouts = []; }
+function registerLayouts(){
+  for (const k of Object.keys(TEMPLATES)) if (TEMPLATES[k].custom) delete TEMPLATES[k];
+  for (const L of myLayouts) TEMPLATES['my-' + L.id] = {name: L.name, kind:'topic', custom:true, layout:L, desc:`Your own layout · ${L.items.length} piece${L.items.length === 1 ? '' : 's'}`, get items(){ return L.items; }};
+}
+function persistLayouts(){ try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(myLayouts)); } catch (e) {} registerLayouts(); }
+registerLayouts();
+const curLayout = () => (TEMPLATES[state.template] || {}).layout || null;
+function bakeLayout(){   // move any dragged offsets into the layout itself so it is saved
+  const L = curLayout(); if (!L) return;
+  L.items.forEach((it, n) => { const k = itemKey(state.template, it[0], it[1], n), o = state.pos[k]; if (!o) return;
+    it[2] = Math.round(Math.max(10, Math.min(1590 - it[4], it[2] + (state.lang === 'ar' ? -o[0] : o[0])))); it[3] = Math.round(Math.max(10, Math.min(990 - it[5], it[3] + o[1]))); delete state.pos[k]; });
+  persistLayouts();
+}
+function newLayout(items, name){
+  const L = {id: Date.now().toString(36), name: name || `My layout ${myLayouts.length + 1}`, items};
+  myLayouts.push(L); persistLayouts(); state.template = state.topicTemplate = 'my-' + L.id; return L;
+}
+function addPieceToLayout(type){
+  const L = curLayout(); if (!L) return; bakeLayout();
+  const used = L.items.filter(it => it[0] === type).length, idx = used % PIECE_MAX[type];
+  const [w, h] = PIECE_SIZES[type], k = L.items.length % 6;
+  L.items.push([type, idx, Math.round(800 - w/2 + (k-3)*18), Math.round(590 - h/2 + (k-3)*14), w, h, 0]);
+  persistLayouts(); selKey = itemKey(state.template, type, idx, L.items.length - 1); renderAll(); renderMyLayoutTools();
+  toast(PIECE_LABEL[type] + ' added. Drag it into place.');
+}
+function renderMyLayoutTools(){
+  const box = document.getElementById('myLayoutTools'); if (!box) return;
+  const L = curLayout(); box.hidden = !L; if (!L) return;
+  $('#layoutName').value = L.name;
+  const pal = $('#piecePalette'); pal.innerHTML = '';
+  Object.keys(PIECE_LABEL).forEach(t => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ibchip';
+    const n = L.items.filter(it => it[0] === t).length; b.textContent = '+ ' + PIECE_LABEL[t] + (n ? ` (${n})` : '');
+    b.addEventListener('click', () => addPieceToLayout(t)); pal.appendChild(b); });
+}
+document.getElementById('newLayoutBtn').addEventListener('click', () => {
+  if (state.boardType !== 'topic'){ toast('My layouts work with topic boards. Choose Topic board in step 1.'); return; }
+  newLayout([['banner', 0, 360, 212, 880, 150, 0]]); selKey = null; renderColors(); renderAll(); renderMyLayoutTools();
+  toast('New layout started. Add pieces below, then drag them on the board.');
+});
+document.getElementById('saveLayoutBtn').addEventListener('click', () => {
+  if (state.boardType !== 'topic'){ toast('My layouts work with topic boards. Choose Topic board in step 1.'); return; }
+  bakeLayout();
+  const items = boardRects(state.template).filter(r => !r.extra).map(r => {
+    const x = state.lang === 'ar' ? 1600 - r.x - r.w : r.x; return [r.type, r.idx, Math.round(x), Math.round(r.y), Math.round(r.w), Math.round(r.h), state.lang === 'ar' ? -r.rot : r.rot]; });
+  const from = TEMPLATES[state.template].name;
+  newLayout(items, TEMPLATES[state.template].custom ? from + ' (copy)' : `My ${from.toLowerCase()}`);
+  renderColors(); renderAll(); renderMyLayoutTools(); toast('Saved to My layouts. You can reuse it on any topic board.');
+});
+document.getElementById('layoutName').addEventListener('input', e => { const L = curLayout(); if (!L) return; L.name = e.target.value.trim() || 'My layout'; persistLayouts(); renderTemplates(); });
+document.getElementById('deleteLayoutBtn').addEventListener('click', () => {
+  const L = curLayout(); if (!L) return;
+  if (!confirm(`Delete the layout "${L.name}"? Your board content stays.`)) return;
+  myLayouts = myLayouts.filter(x => x !== L); persistLayouts(); state.template = state.topicTemplate = 'grid'; selKey = null;
+  renderColors(); renderAll(); renderMyLayoutTools(); toast('Layout deleted');
+});
+
 /* ---------- render UI ---------- */
 const $ = s => document.querySelector(s);
 const tplWrap = $('#templates');
 function renderTemplates(){
   tplWrap.innerHTML = '';
-  for (const [key, t] of Object.entries(TEMPLATES)){
+  let shownMine = false, shownSuggested = false;
+  const entries = Object.entries(TEMPLATES).sort((a, b) => (a[1].custom ? 1 : 0) - (b[1].custom ? 1 : 0));
+  for (const [key, t] of entries){
     if ((t.kind || 'topic') !== state.boardType) continue;
+    if (state.boardType === 'topic' && !t.custom && !shownSuggested){ shownSuggested = true; const h = document.createElement('div'); h.className = 'tplhead'; h.textContent = 'Suggested layouts'; tplWrap.appendChild(h); }
+    if (t.custom && !shownMine){ shownMine = true; const h = document.createElement('div'); h.className = 'tplhead'; h.textContent = 'My layouts'; tplWrap.appendChild(h); }
     const b = document.createElement('button'); b.type='button'; b.className='tpl'; b.setAttribute('aria-pressed', String(key===state.template));
     const cv = document.createElement('canvas'); b.appendChild(cv);
     const nm = document.createElement('b'); nm.textContent = t.name; b.appendChild(nm);
     const ds = document.createElement('small'); ds.textContent = t.desc; b.appendChild(ds);
-    b.addEventListener('click', () => { state.template = key; if (t.kind === 'topic') state.topicTemplate = key; renderColors(); renderAll(); });
+    b.addEventListener('click', () => { bakeLayout(); selKey = null; state.template = key; if (t.kind === 'topic') state.topicTemplate = key; renderColors(); renderAll(); renderMyLayoutTools(); });
     tplWrap.appendChild(b);
     const w = Math.max(140, cv.clientWidth || 150);
     const ctx = sizeCanvas(cv, w, 1.6); drawBoard(ctx, cv.width, cv.height, PAL[state.backing], key);
@@ -970,14 +1038,22 @@ function updateSelBar(){
   const bar = document.getElementById('selBar'); if (!bar) return;
   const r = selRect(); if (!r){ bar.hidden = true; return; }
   bar.hidden = false; document.getElementById('selName').textContent = rectName(r);
-  ['selSmaller','selBigger','selRemove'].forEach(id => { document.getElementById(id).hidden = !r.extra; });
+  const editable = !!r.extra || (!!curLayout() && r.n !== undefined);
+  ['selSmaller','selBigger','selRemove'].forEach(id => { document.getElementById(id).hidden = !editable; });
 }
 function selectKey(k){ selKey = k; renderBoard(); }
-function resizeSel(f){ const r = selRect(); if (!r || !r.extra) return;
+function resizeSel(f){ const r = selRect(); if (!r) return;
+  const L = curLayout();
+  if (!r.extra && L && r.n !== undefined){ bakeLayout(); const it = L.items[r.n]; const cx = it[2] + it[4]/2, cy = it[3] + it[5]/2;
+    it[4] = Math.round(Math.max(60, Math.min(1500, it[4]*f))); it[5] = Math.round(Math.max(40, Math.min(900, it[5]*f))); it[2] = Math.round(cx - it[4]/2); it[3] = Math.round(cy - it[5]/2);
+    persistLayouts(); renderAll(); return; }
+  if (!r.extra) return;
   r.extra.scale = Math.max(.5, Math.min(4, (r.extra.scale || 1) * f)); renderAll(); }
 document.getElementById('selBigger').addEventListener('click', () => resizeSel(1.25));
 document.getElementById('selSmaller').addEventListener('click', () => resizeSel(0.8));
-document.getElementById('selRemove').addEventListener('click', () => { const r = selRect(); if (r && r.extra){ selKey = null; removeExtra(r.extra.id); } });
+document.getElementById('selRemove').addEventListener('click', () => { const r = selRect(); if (!r) return;
+  if (r.extra){ selKey = null; removeExtra(r.extra.id); return; }
+  const L = curLayout(); if (L && r.n !== undefined){ bakeLayout(); L.items.splice(r.n, 1); persistLayouts(); selKey = null; renderAll(); renderMyLayoutTools(); } });
 document.getElementById('selDone').addEventListener('click', () => selectKey(null));
 function centreExtra(ex){
   const k = state.template + '|x|' + ex.id; delete state.pos[k];
@@ -1002,10 +1078,10 @@ boardCv.addEventListener('pointermove', e => {
 document.addEventListener('keydown', e => {
   if (!selKey || /input|textarea|select/i.test((e.target.tagName || ''))) return;
   const d = {ArrowLeft:[-10,0], ArrowRight:[10,0], ArrowUp:[0,-10], ArrowDown:[0,10]}[e.key];
-  if (d){ e.preventDefault(); const o = state.pos[selKey] || [0,0]; state.pos[selKey] = [o[0] + d[0]*(e.shiftKey?4:1), o[1] + d[1]*(e.shiftKey?4:1)]; renderBoard(); saveSoon(); }
+  if (d){ e.preventDefault(); const o = state.pos[selKey] || [0,0]; state.pos[selKey] = [o[0] + d[0]*(e.shiftKey?4:1), o[1] + d[1]*(e.shiftKey?4:1)]; bakeLayout(); renderBoard(); saveSoon(); }
   else if (e.key === 'Escape') selectKey(null);
 });
-const endDrag = () => { if (!drag) return; drag = null; boardCv.style.cursor = 'grab'; renderBoard(); renderTemplates(); saveSoon(); };
+const endDrag = () => { if (!drag) return; drag = null; boardCv.style.cursor = 'grab'; bakeLayout(); renderBoard(); renderTemplates(); saveSoon(); };
 boardCv.addEventListener('pointerup', endDrag); boardCv.addEventListener('pointercancel', endDrag);
 document.getElementById('resetPos').addEventListener('click', () => {
   Object.keys(state.pos).forEach(k => { if (k.startsWith(state.template + '|')) delete state.pos[k]; }); renderBoard(); renderTemplates();
@@ -1573,7 +1649,7 @@ function boardData(withPictures = true){
     leaders: state.yb.leaders.map(({img, ...r}) => withPictures ? r : {...r, src: undefined}),
     tt: state.yb.tt.map(t => t && withPictures ? {src: t.src} : null)}));
   const team = {...state.team, members: state.team.members.map(({img, ...r}) => withPictures ? r : {...r, src: undefined})};
-  return {v:1, lang: state.lang, team, libId: state.libId, boardType: state.boardType, topicTemplate: state.topicTemplate, yb, title: state.title, idea: $('#idea').value, grade: $('#grade').value, backing: state.backing, template: state.template,
+  return {v:1, layouts: myLayouts, lang: state.lang, team, libId: state.libId, boardType: state.boardType, topicTemplate: state.topicTemplate, yb, title: state.title, idea: $('#idea').value, grade: $('#grade').value, backing: state.backing, template: state.template,
     elem: state.elem, custom: state.custom, over: state.over, pos: state.pos, content,
     extras: state.extras.filter(x => withPictures || !(x.src && x.src.startsWith('data:'))).map(({img, ...rest}) => rest)};
 }
@@ -1586,6 +1662,7 @@ function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(() => {
   } }, 600); }
 async function applyBoard(d){
   if (!d || typeof d !== 'object' || !d.content) throw new Error('not a board');
+  if (Array.isArray(d.layouts)){ for (const L of d.layouts){ if (L && L.id && Array.isArray(L.items) && !myLayouts.some(x => x.id === L.id)) myLayouts.push(L); } persistLayouts(); }
   state.lang = d.lang === 'ar' ? 'ar' : 'en'; { const lr = document.getElementById('lang-' + state.lang); if (lr) lr.checked = true; }
   state.title = d.title || 'My Board'; state.backing = PAL[d.backing] ? d.backing : 'green'; state.template = TEMPLATES[d.template] ? d.template : 'grid';
   state.elem = FAM[d.elem] ? d.elem : 'match'; state.custom = d.custom || '#c94d86'; state.over = d.over || {}; state.pos = d.pos || {};
@@ -1647,7 +1724,7 @@ const fontsReady = Promise.all([
 ]).catch(() => {});
 renderColors();
 renderAll();
-syncBoardTypeUI(); renderIconGrid(); renderIB(); renderLibrary(); renderTeamLib(); updateGoogle(); goStep(1);
+syncBoardTypeUI(); renderIconGrid(); renderIB(); renderLibrary(); renderTeamLib(); renderMyLayoutTools(); updateGoogle(); goStep(1);
 (async () => {
   let saved = null; try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
   if (saved){ try { await applyBoard(saved); setStatus('Welcome back. Your last board is restored.'); } catch (e) {} }

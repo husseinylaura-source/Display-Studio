@@ -102,6 +102,13 @@ With this part, the button becomes **Write my board content**. It writes facts, 
 
 ---
 
+## My layouts
+
+- In step 3, the three **suggested layouts** are always there.
+- **+ Design my own layout** starts an empty layout. Add pieces (fact cards, key words, flaps, big question, challenge pocket, voice bubbles, star, work frame), drag them into place and resize them.
+- **Save this arrangement as my layout** keeps any layout you have rearranged.
+- Your layouts appear under **My layouts** for every topic board, in any language. They are kept in your browser, and **Save board file** includes them so colleagues can use them too.
+
 ## Year group boards and timetables
 
 - Choose **Year group board** in step 1 and type the year, for example "Year 8".

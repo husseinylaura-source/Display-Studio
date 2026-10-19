@@ -229,3 +229,9 @@ dialog form{margin-top:14px;display:flex;justify-content:flex-end}
 
 .langs .swatch span{font-size:15px}
 [lang="ar"]{font-family:'Cairo','Nunito',sans-serif}
+
+.tplhead{font-size:11.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.mylayouts,.mytools{border:1px dashed var(--accent);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.mylayouts > b,.palhead{font-size:14px;font-weight:900}
+.mytools{border-style:solid;background:var(--soft)}
+.mytools #deleteLayoutBtn{align-self:flex-start}
