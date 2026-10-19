@@ -44,9 +44,10 @@
         <h2 id="s1h"><span class="num">1</span> What is your board about?</h2>
         <fieldset>
           <legend>Type of board</legend>
-          <div class="swatches two">
+          <div class="swatches three">
             <label class="swatch"><input type="radio" name="btype" value="topic" id="bt-topic" checked><span>Topic board<small>A subject, unit or theme</small></span></label>
             <label class="swatch"><input type="radio" name="btype" value="year" id="bt-year"><span>Year group board<small>Timetables, notices, leaders, houses</small></span></label>
+            <label class="swatch"><input type="radio" name="btype" value="team" id="bt-team"><span>Team board<small>Student leaders, councils, teams with photos</small></span></label>
           </div>
         </fieldset>
         <form id="form" class="stack" autocomplete="off">
@@ -71,6 +72,31 @@
           <p class="status" id="status" role="status">Showing an example board. Type your own title and idea, then press the button.</p>
          </div>
         </form>
+        <div id="teamFields" class="stack" hidden>
+          <div class="lib">
+            <b>Start from a ready-made team board</b>
+            <div class="ibitems" id="teamLib"></div>
+          </div>
+          <label class="f">Board title
+            <input type="text" id="tmTitle" maxlength="40" value="Our Team">
+            <small>Each letter prints on its own page.</small>
+          </label>
+          <label class="f">Subtitle
+            <input type="text" id="tmSubtitle" maxlength="60">
+          </label>
+          <label class="f">Introduction heading
+            <input type="text" id="tmIntroH" maxlength="30">
+          </label>
+          <label class="f">Introduction text
+            <textarea id="tmIntro" maxlength="300"></textarea>
+          </label>
+          <fieldset>
+            <legend>Team members</legend>
+            <p class="hint">Tap <b>+ Photo</b> to add each person's photo from your computer or phone.</p>
+            <div id="tmMembers" class="stack tight"></div>
+            <button class="mini" type="button" id="tmAdd">Add a member</button>
+          </fieldset>
+        </div>
         <div id="yearFields" class="stack" hidden>
           <label class="f">Year group
             <input type="text" id="ybYear" maxlength="20" value="Year 8">

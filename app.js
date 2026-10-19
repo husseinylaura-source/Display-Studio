@@ -78,6 +78,9 @@ const pieceKey = (tpl, type, idx) => `${tpl}|${type}|${idx}`;
 
 let content = JSON.parse(JSON.stringify(EXAMPLE));
 let state = {boardType:'topic', topicTemplate:'grid',
+  team:{subtitle:'Student leadership 2026–27', introHeading:'Our team', introText:'Meet the students who lead, represent and serve our school community.',
+    pocketTitle:'HAVE YOUR SAY', pocketText:'Take a slip, write your idea and post it here.',
+    members:[{name:'', role:'President'},{name:'', role:'Vice President'},{name:'', role:'Team member'},{name:'', role:'Team member'}]},
   yb:{year:'Year 8', classes:['8A','8B','8C','8D','8E'], headers:['Timetables','Wellbeing','Notices','Student Leadership','House Points'],
     houses:[{name:'Camels', color:'#e53935'},{name:'Falcons', color:'#1e88e5'},{name:'Khanjars', color:'#fdd835'},{name:'Dhows', color:'#7cb342'}],
     leaders:[{name:'Student name', role:'Year Leader'},{name:'Student name', role:'Deputy Leader'},{name:'Student name', role:'Wellbeing Ambassador'},{name:'Student name', role:'Sports Captain'}],
@@ -503,6 +506,58 @@ function yearItems(){
   for (let i = 0; i < nh; i++){ const w2 = hw*hScale, h2 = hh*hScale; it.push(['house',i,1110 + (i%cols)*(w2 + 22) + (cols === 2 ? 20 : 0),hy + 80 + Math.floor(i/cols)*(h2 + 12),w2,h2,0]); }
   return it;
 }
+Object.assign(TYPES, {
+  tbanner: {name:'Subtitle banner', tag:'edu', pages:() => [{aspect:5, draw(c,w,h,p){ TYPES.banner.pages({subtitle: state.team.subtitle})[0].draw(c,w,h,p); }}]},
+  tintro: {name:'Introduction card', tag:'edu', pages:() => [{aspect:.8, draw(c,w,h,p){
+    const u = Math.min(w,h)/100, T = state.team; cardBox(c,w,h,u,p.card,p.dark,7);
+    const th = h*.16; rr(c, w*.12, u*1.5, w*.76, th, u*4); c.fillStyle = p.dark; c.fill();
+    text(c, (T.introHeading || '').toUpperCase(), w/2, u*1.5 + th/2, {family:F.display, weight:400, maxW:w*.68, maxH:th*.7, max:th*.36}, '#ffffff');
+    text(c, T.introText || '', w/2, h*.6, {family:F.body, weight:700, maxW:w*.8, maxH:h*.68, max:h*.065}, p.ink);
+  }}]},
+  tpocket: {name:'Idea pocket', tag:'int', pages:() => [
+    {label:'pocket', aspect:1.3, draw(c,w,h,p){
+      const u = Math.min(w,h)/100, T = state.team;
+      c.save(); c.translate(w*.5,h*.2); c.rotate(-.06); rr(c,-w*.3,-h*.17,w*.6,h*.5,u*4); c.fillStyle=p.card; c.fill(); c.lineWidth=u; c.strokeStyle=p.mid; c.stroke();
+      text(c,'IDEA',0,-h*.08,{family:F.display,weight:400,maxW:w*.4,maxH:h*.08,max:h*.06},p.mid); c.restore();
+      c.beginPath(); c.moveTo(u*1.5,h*.3); c.lineTo(w*.5,h*.46); c.lineTo(w-u*1.5,h*.3); c.lineTo(w-u*1.5,h-u*1.5); c.lineTo(u*1.5,h-u*1.5); c.closePath();
+      c.fillStyle=p.dark; c.fill(); c.lineWidth=u*1.2; c.strokeStyle=p.ink; c.lineJoin='round'; c.stroke();
+      text(c,(T.pocketTitle||'').toUpperCase(),w/2,h*.64,{family:F.display,weight:400,maxW:w*.8,maxH:h*.14,max:h*.11},'#ffffff');
+      text(c,T.pocketText||'',w/2,h*.83,{family:F.body,weight:800,maxW:w*.8,maxH:h*.14,max:h*.06},p.light);
+    }},
+    {label:'idea slips (cut out)', aspect:1.414, board:false, draw(c,w,h,p){
+      const u = Math.min(w,h)/100, cw = w/2, ch = h/3;
+      for (let k = 0; k < 6; k++){ const x = (k%2)*cw, y = Math.floor(k/2)*ch;
+        text(c,(state.team.pocketTitle||'MY IDEA').toUpperCase(),x+cw/2,y+ch*.2,{family:F.display,weight:400,maxW:cw*.8,maxH:ch*.14,max:ch*.11},p.mid);
+        c.strokeStyle='#bbbbbb'; c.lineWidth=u*.25; for (let l=0;l<3;l++){ const ly=y+ch*(.42+l*.17); c.beginPath(); c.moveTo(x+cw*.1,ly); c.lineTo(x+cw*.9,ly); c.stroke(); } }
+      c.setLineDash([u*2,u*1.6]); c.lineWidth=u*.4; c.strokeStyle='#999999'; c.beginPath(); c.moveTo(w/2,0); c.lineTo(w/2,h);
+      c.moveTo(0,h/3); c.lineTo(w,h/3); c.moveTo(0,2*h/3); c.lineTo(w,2*h/3); c.stroke(); c.setLineDash([]);
+    }}]},
+  tmember: {name:'Team member', tag:'cel', pages:(d,i) => [{aspect:.75, draw(c,w,h,p){
+    const u = Math.min(w,h)/100, M = state.team.members[i] || {}; cardBox(c,w,h,u,p.card,p.dark,5);
+    const x = w*.08, y = w*.08, pw = w*.84, ph = h*.62;
+    c.save(); rr(c,x,y,pw,ph,u*3); c.clip(); c.fillStyle = p.light; c.fillRect(x,y,pw,ph);
+    if (imgOk(M.img)) drawCover(c, M.img, x, y, pw, ph);
+    else { c.fillStyle = p.mid; c.beginPath(); c.arc(w/2, y+ph*.38, pw*.17, 0, Math.PI*2); c.fill(); c.beginPath(); c.ellipse(w/2, y+ph*1.02, pw*.36, ph*.36, 0, Math.PI, 0); c.fill(); }
+    c.restore(); rr(c,x,y,pw,ph,u*3); c.lineWidth = u*1.2; c.strokeStyle = p.dark; c.stroke();
+    text(c, M.name || 'Name: ______________', w/2, h*.765, {family:F.display, weight:400, maxW:w*.86, maxH:h*.08, max:h*.065}, p.ink);
+    const bh = h*.105; rr(c, w*.07, h*.85, w*.86, bh, bh/2); c.fillStyle = p.dark; c.fill();
+    text(c, (M.role || 'Role').toUpperCase(), w/2, h*.85 + bh/2, {family:F.body, weight:900, maxW:w*.78, maxH:bh*.7, max:bh*.42}, '#ffffff');
+  }}]}
+});
+function teamItems(){
+  const it = [['tbanner',0,400,212,800,130,0], ['tintro',0,40,370,280,350,-.01], ['tpocket',0,52,740,250,192,.01]];
+  const n = Math.max(1, Math.min(14, state.team.members.length));
+  const rows = n <= 5 ? 1 : n <= 10 ? 2 : 3, cols = Math.ceil(n/rows);
+  const AX = 350, AW = 1210, AY = 365, AH = 610;
+  const w = Math.min(AW/cols - 22, (AH/rows - 22)*.75, 300), h = w/.75;
+  for (let k = 0; k < n; k++){
+    const r = Math.floor(k/cols), inRow = r < rows - 1 ? cols : n - cols*(rows-1), c0 = k - r*cols;
+    const rowW = inRow*w + (inRow-1)*22, x0 = AX + (AW - rowW)/2, y0 = AY + (AH - (rows*h + (rows-1)*22))/2;
+    it.push(['tmember', k, x0 + c0*(w+22), y0 + r*(h+22), w, h, (k%2 ? .012 : -.012)]);
+  }
+  return it;
+}
+TEMPLATES.team = {name:'Team board', kind:'team', desc:'Photo cards for every member, an introduction and an idea pocket.', get items(){ return teamItems(); }};
 TEMPLATES.year = {name:'Year group board', kind:'year', desc:'Timetables, wellbeing check-in, notices, student leaders and house points.', get items(){ return yearItems(); }};
 
 /* ---------- title ---------- */
@@ -674,6 +729,10 @@ function fieldsFor(it){
     ? [f('Name', it.extra, 'label', 40), f('Description', it.extra, 'desc', 90)]
     : [f('Label', it.extra, 'label', 24)];
   switch (it.type){
+    case 'tbanner': return [f('Subtitle', state.team, 'subtitle', 60)];
+    case 'tintro': return [f('Heading', state.team, 'introHeading', 30), f('Text', state.team, 'introText', 300)];
+    case 'tpocket': return [f('Pocket heading', state.team, 'pocketTitle', 30), f('Pocket text', state.team, 'pocketText', 100)];
+    case 'tmember': return [f('Name', state.team.members[it.idx], 'name', 40), f('Role', state.team.members[it.idx], 'role', 50)];
     case 'header': return [f('Heading', state.yb.headers, it.idx, 30)];
     case 'tt': return [f('Class name', state.yb.classes, it.idx, 12)];
     case 'mood': return [f('Question', state.yb, 'mood', 60)];
@@ -734,13 +793,14 @@ function renderPieces(){
       });
       det.appendChild(box); card.appendChild(det);
     }
-    if (it.type === 'tt' || it.type === 'leader'){
+    if (it.type === 'tt' || it.type === 'leader' || it.type === 'tmember'){
       const up = document.createElement('label'); up.className = 'mini rm'; up.textContent = it.type === 'tt' ? 'Add timetable picture' : 'Add photo';
+      if (it.type === 'tmember' && state.team.members[it.idx] && state.team.members[it.idx].src) up.textContent = 'Change photo';
       const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; up.appendChild(fi);
       fi.addEventListener('change', async () => { const fl = fi.files && fi.files[0]; if (!fl) return;
         const url = URL.createObjectURL(fl);
         try { const im0 = await loadImg(url); const src = shrink(im0, 2200); const im = await loadImg(src);
-          if (it.type === 'tt') state.yb.tt[it.idx] = {src, img:im}; else Object.assign(state.yb.leaders[it.idx], {src, img:im});
+          if (it.type === 'tt') state.yb.tt[it.idx] = {src, img:im}; else if (it.type === 'tmember') Object.assign(state.team.members[it.idx], {src, img:im}); else Object.assign(state.yb.leaders[it.idx], {src, img:im});
           renderAll(); toast(it.type === 'tt' ? 'Timetable added' : 'Photo added'); }
         catch (e) { toast('That picture could not be read. Try a JPG or PNG.'); } finally { URL.revokeObjectURL(url); } });
       card.appendChild(up);
@@ -1184,7 +1244,7 @@ function renderLibrary(){
   const wrap = $('#libList'); if (!wrap) return; wrap.innerHTML = '';
   const q = $('#libSearch').value.trim().toLowerCase();
   const groups = {};
-  LIB.filter(b => !q || (b.title + ' ' + b.group + ' ' + b.idea).toLowerCase().includes(q)).forEach(b => (groups[b.group] ||= []).push(b));
+  LIB.filter(b => b.boardType !== 'team').filter(b => !q || (b.title + ' ' + b.group + ' ' + b.idea).toLowerCase().includes(q)).forEach(b => (groups[b.group] ||= []).push(b));
   const keys = Object.keys(groups);
   if (!keys.length){ wrap.innerHTML = '<p class="addmsg">No ready-made board matches. Type your own title and idea below.</p>'; return; }
   for (const g of keys){
@@ -1199,6 +1259,15 @@ function renderLibrary(){
   }
 }
 function applyLibrary(b){
+  if (b.boardType === 'team'){
+    state.libId = b.id; state.boardType = 'team'; state.template = 'team'; state.title = b.title;
+    state.team = JSON.parse(JSON.stringify(b.team));
+    if (b.backing && PAL[b.backing]){ state.backing = b.backing; const r = document.getElementById('bk-' + b.backing); if (r) r.checked = true; }
+    state.elem = b.elem && FAM[b.elem] ? b.elem : 'match';
+    state.extras = state.extras.filter(e => e.kind !== 'house' && !e.fromLib);
+    syncBoardTypeUI(); renderColors(); renderAll(); renderIB(); renderLibrary();
+    toast(b.title + ' board loaded'); return;
+  }
   if (state.boardType !== 'topic'){ state.boardType = 'topic'; state.template = state.topicTemplate || 'grid'; syncBoardTypeUI(); }
   state.libId = b.id; state.title = b.title; $('#title').value = b.title; $('#idea').value = b.idea; state.idea = b.idea;
   content = normalize(JSON.parse(JSON.stringify(b.content)), b.title, b.idea);
@@ -1213,13 +1282,22 @@ function applyLibrary(b){
   toast(b.title + ' board loaded');
 }
 $('#libSearch').addEventListener('input', renderLibrary);
+function renderTeamLib(){
+  const wrap = document.getElementById('teamLib'); if (!wrap) return; wrap.innerHTML = '';
+  LIB.filter(b => b.boardType === 'team').forEach(b => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ibchip';
+    btn.textContent = b.title; btn.title = b.idea; btn.setAttribute('aria-pressed', String(state.libId === b.id));
+    btn.addEventListener('click', () => { applyLibrary(b); renderTeamLib(); }); wrap.appendChild(btn); });
+}
 
 /* ---------- board type + year group form ---------- */
 let yearDefaultsApplied = false;
 function syncBoardTypeUI(){
-  const yr = state.boardType === 'year';
-  $('#topicFields').hidden = yr; $('#yearFields').hidden = !yr;
-  const r = document.getElementById(yr ? 'bt-year' : 'bt-topic'); if (r) r.checked = true;
+  const yr = state.boardType === 'year', tm = state.boardType === 'team';
+  $('#topicFields').hidden = yr || tm; $('#yearFields').hidden = !yr; $('#teamFields').hidden = !tm;
+  const r = document.getElementById('bt-' + state.boardType); if (r) r.checked = true;
+  $('#tmTitle').value = tm ? state.title : ($('#tmTitle').value || 'Our Team'); $('#tmSubtitle').value = state.team.subtitle;
+  $('#tmIntroH').value = state.team.introHeading; $('#tmIntro').value = state.team.introText;
+  renderTeamList();
   $('#ybYear').value = state.yb.year; $('#ybClasses').value = state.yb.classes.join(', ');
   $('#ybNotices').value = state.yb.notices.join('\n'); $('#ybMood').value = state.yb.mood;
   renderYearLists();
@@ -1229,9 +1307,37 @@ function setBoardType(t){
   if (t === 'year'){
     state.template = 'year'; state.title = state.yb.year || 'Year';
     if (!yearDefaultsApplied && state.backing === 'green' && state.elem === 'match'){ yearDefaultsApplied = true; state.backing = 'black'; state.elem = 'green'; document.getElementById('bk-black').checked = true; }
-  } else { state.template = state.topicTemplate || 'grid'; state.title = $('#title').value.trim() || 'My Board'; }
+  } else if (t === 'team'){ state.template = 'team'; state.title = $('#tmTitle').value.trim() || 'Our Team'; }
+  else { state.template = state.topicTemplate || 'grid'; state.title = $('#title').value.trim() || 'My Board'; }
   syncBoardTypeUI(); renderColors(); renderAll();
 }
+let tmT; const tmSoon = fn => { clearTimeout(tmT); tmT = setTimeout(() => { fn(); renderAll(); }, 220); };
+$('#tmTitle').addEventListener('input', () => tmSoon(() => { state.title = $('#tmTitle').value.trim() || ' '; }));
+$('#tmSubtitle').addEventListener('input', () => tmSoon(() => { state.team.subtitle = $('#tmSubtitle').value; }));
+$('#tmIntroH').addEventListener('input', () => tmSoon(() => { state.team.introHeading = $('#tmIntroH').value; }));
+$('#tmIntro').addEventListener('input', () => tmSoon(() => { state.team.introText = $('#tmIntro').value; }));
+function renderTeamList(){
+  const wrap = $('#tmMembers'); wrap.innerHTML = '';
+  state.team.members.forEach((M, i) => {
+    const row = document.createElement('div'); row.className = 'lrow tmrow';
+    const th = document.createElement('label'); th.className = 'tmthumb'; th.title = 'Add or change photo';
+    if (M.src){ const im = document.createElement('img'); im.src = M.src; im.alt = ''; th.appendChild(im); } else th.textContent = '+ Photo';
+    const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; th.appendChild(fi);
+    fi.addEventListener('change', async () => { const fl = fi.files && fi.files[0]; if (!fl) return; const url = URL.createObjectURL(fl);
+      try { const im0 = await loadImg(url); const src = shrink(im0, 1400); Object.assign(M, {src, img: await loadImg(src)}); renderTeamList(); renderAll(); }
+      catch (e) { toast('That picture could not be read. Try a JPG or PNG.'); } finally { URL.revokeObjectURL(url); } });
+    const nm = document.createElement('input'); nm.type = 'text'; nm.value = M.name || ''; nm.placeholder = 'Name'; nm.maxLength = 40; nm.id = 'tm-name-' + i; nm.setAttribute('aria-label', 'Member ' + (i+1) + ' name');
+    const ro = document.createElement('input'); ro.type = 'text'; ro.value = M.role || ''; ro.placeholder = 'Role'; ro.maxLength = 50; ro.id = 'tm-role-' + i; ro.setAttribute('aria-label', 'Member ' + (i+1) + ' role');
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'mini'; rm.textContent = '×'; rm.setAttribute('aria-label', 'Remove member ' + (i+1));
+    nm.addEventListener('input', () => tmSoon(() => { M.name = nm.value.trim(); }));
+    ro.addEventListener('input', () => tmSoon(() => { M.role = ro.value.trim(); }));
+    rm.addEventListener('click', () => { state.team.members.splice(i, 1); renderTeamList(); renderAll(); });
+    const fields = document.createElement('div'); fields.className = 'tmfields'; fields.append(nm, ro);
+    row.append(th, fields, rm); wrap.appendChild(row);
+  });
+  $('#tmAdd').hidden = state.team.members.length >= 14;
+}
+$('#tmAdd').addEventListener('click', () => { state.team.members.push({name:'', role:'Team member'}); renderTeamList(); renderAll(); });
 document.querySelectorAll('input[name=btype]').forEach(r => r.addEventListener('change', () => setBoardType(r.value)));
 function ybChanged(){ renderAll(); }
 let ybT; const ybSoon = fn => { clearTimeout(ybT); ybT = setTimeout(() => { fn(); ybChanged(); }, 220); };
@@ -1324,7 +1430,8 @@ function boardData(withPictures = true){
   const yb = JSON.parse(JSON.stringify({...state.yb,
     leaders: state.yb.leaders.map(({img, ...r}) => withPictures ? r : {...r, src: undefined}),
     tt: state.yb.tt.map(t => t && withPictures ? {src: t.src} : null)}));
-  return {v:1, libId: state.libId, boardType: state.boardType, topicTemplate: state.topicTemplate, yb, title: state.title, idea: $('#idea').value, grade: $('#grade').value, backing: state.backing, template: state.template,
+  const team = {...state.team, members: state.team.members.map(({img, ...r}) => withPictures ? r : {...r, src: undefined})};
+  return {v:1, team, libId: state.libId, boardType: state.boardType, topicTemplate: state.topicTemplate, yb, title: state.title, idea: $('#idea').value, grade: $('#grade').value, backing: state.backing, template: state.template,
     elem: state.elem, custom: state.custom, over: state.over, pos: state.pos, content,
     extras: state.extras.filter(x => withPictures || !(x.src && x.src.startsWith('data:'))).map(({img, ...rest}) => rest)};
 }
@@ -1340,7 +1447,12 @@ async function applyBoard(d){
   state.title = d.title || 'My Board'; state.backing = PAL[d.backing] ? d.backing : 'green'; state.template = TEMPLATES[d.template] ? d.template : 'grid';
   state.elem = FAM[d.elem] ? d.elem : 'match'; state.custom = d.custom || '#c94d86'; state.over = d.over || {}; state.pos = d.pos || {};
   content = normalize(d.content, state.title, d.idea || '');
-  state.boardType = d.boardType === 'year' ? 'year' : 'topic'; state.topicTemplate = TEMPLATES[d.topicTemplate] ? d.topicTemplate : 'grid';
+  state.boardType = ['year','team'].includes(d.boardType) ? d.boardType : 'topic';
+  if (d.team && typeof d.team === 'object'){
+    const T = {...state.team, ...d.team};
+    T.members = await Promise.all((T.members || []).map(async M => { if (M && M.src){ try { return {...M, img: await loadImg(M.src)}; } catch (e) {} } return M || {}; }));
+    state.team = T;
+  } state.topicTemplate = TEMPLATES[d.topicTemplate] ? d.topicTemplate : 'grid';
   if (d.yb && typeof d.yb === 'object'){
     const Y = {...state.yb, ...d.yb};
     Y.leaders = await Promise.all((Y.leaders || []).map(async L => { if (L && L.src){ try { return {...L, img: await loadImg(L.src)}; } catch (e) {} } return L || {}; }));
@@ -1391,7 +1503,7 @@ const fontsReady = Promise.all([
 ]).catch(() => {});
 renderColors();
 renderAll();
-syncBoardTypeUI(); renderIconGrid(); renderIB(); renderLibrary(); updateGoogle(); goStep(1);
+syncBoardTypeUI(); renderIconGrid(); renderIB(); renderLibrary(); renderTeamLib(); updateGoogle(); goStep(1);
 (async () => {
   let saved = null; try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
   if (saved){ try { await applyBoard(saved); setStatus('Welcome back. Your last board is restored.'); } catch (e) {} }

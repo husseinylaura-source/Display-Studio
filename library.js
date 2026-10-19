@@ -13,7 +13,30 @@ function B(id, group, title, idea, subtitle, bigQuestion, facts, vocab, flaps, c
 }
 const S = 'Subjects', I = 'IB & DP core', P = 'Wellbeing & pastoral', U = 'UAE', E = 'Events & weeks', H = 'House system';
 
+const TEAM = (role) => ({name:'', role});
 window.BOARD_LIBRARY = [
+/* ---------------- team boards (photos are added by the teacher) ---------------- */
+{id:'majlis', group:'Team boards', boardType:'team', title:'Meadows Majlis', backing:'beige', elem:'teal',
+  idea:'Our student leadership council: the President, Vice President and the heads of our seven committees.',
+  team:{subtitle:'Student Leadership 2026–27', introHeading:'What is a Majlis?',
+    introText:'Majlis (مجلس) means "council" or "place of gathering". It is where people come together to share ideas, solve problems and make decisions for the community. Our Student Majlis gives every student a voice.',
+    pocketTitle:'Have your say', pocketText:'Got an idea for our school? Write it on a slip and post it here.',
+    members:[TEAM('President · Year 12'), TEAM('Vice President · Year 12'), TEAM('Head of Innovation & Futures'), TEAM('Head of Academics'),
+      TEAM('Head of The Arts'), TEAM('Head of Sports'), TEAM('Head of Service & Community'), TEAM('Head of Wellbeing & Belonging'), TEAM('Head of Inclusion')]}},
+{id:'headteam', group:'Team boards', boardType:'team', title:'Head Team', backing:'beige', elem:'teal',
+  idea:'Our Year 13 Head Team, who lead by example and represent every student.',
+  team:{subtitle:'Year 13 · 2026–27', introHeading:'Meet the Head Team',
+    introText:'Our Head Team are Year 13 students who lead by example, represent every student, support the Majlis and welcome visitors and new students.',
+    pocketTitle:'Ask the Head Team', pocketText:'Write your question on a slip and post it here.',
+    members:[TEAM('Head Team · Year 13'), TEAM('Head Team · Year 13'), TEAM('Head Team · Year 13'), TEAM('Head Team · Year 13'),
+      TEAM('Head Team · Year 13'), TEAM('Head Team · Year 13'), TEAM('Head Team · Year 13')]}},
+{id:'studentcouncil', group:'Team boards', boardType:'team', title:'Student Council', backing:'green', elem:'match',
+  idea:'Class representatives who share student voice with school leaders.',
+  team:{subtitle:'Your voice, our school', introHeading:'Student voice',
+    introText:'Each class elects a representative who brings ideas and concerns to the Student Council and shares updates with their class.',
+    pocketTitle:'Tell your rep', pocketText:'Post an idea or question for your class representative.',
+    members:[TEAM('Chair'), TEAM('Secretary'), TEAM('Class representative'), TEAM('Class representative'), TEAM('Class representative'), TEAM('Class representative')]}},
+
 /* ---------------- subjects ---------------- */
 B('english', S, 'English', 'Reading, writing, speaking and listening, and how language shapes meaning.',
   'Words have power', 'Can a single word change how a whole story feels?',
