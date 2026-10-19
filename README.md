@@ -16,7 +16,7 @@ All ready-made boards are in `library.js`. To add a board, copy one block in tha
 There are three kinds of board:
 
 - **Topic board.** A subject, unit or theme, with facts, key words, lift-the-flaps, challenges and celebration pieces.
-- **Team board.** A photo card for each student leader with name and role, plus an introduction card and an idea pocket. Ready-made: Meadows Majlis, Head Team and Student Council. Teachers add photos with **+ Photo**; photos stay on their own computer and are never uploaded.
+- **Team board.** A photo card for each student leader with name and role, plus an introduction card and an idea pocket. Ready-made: Meadows Majlis, Head Team and Student Council. The Meadows Majlis and Head Team boards come with student photos built in (in the `photos` folder). Teachers add photos to other team boards with **+ Photo**.
 - **Year group board.** Year title, class timetable spaces, a wellbeing check-in, notices, student leaders with photos, and house points tiles in each house's own colour.
 
 Teachers go through five steps:

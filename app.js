@@ -1262,6 +1262,7 @@ function applyLibrary(b){
   if (b.boardType === 'team'){
     state.libId = b.id; state.boardType = 'team'; state.template = 'team'; state.title = b.title;
     state.team = JSON.parse(JSON.stringify(b.team));
+    state.team.members.forEach(M => { if (M.src && !M.img) loadImg(M.src).then(im => { M.img = im; renderAll(); }).catch(() => {}); });
     if (b.backing && PAL[b.backing]){ state.backing = b.backing; const r = document.getElementById('bk-' + b.backing); if (r) r.checked = true; }
     state.elem = b.elem && FAM[b.elem] ? b.elem : 'match';
     state.extras = state.extras.filter(e => e.kind !== 'house' && !e.fromLib);
