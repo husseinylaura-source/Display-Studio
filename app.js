@@ -636,6 +636,9 @@ function drawTitle(c, title, cx, top, maxW, maxH, p){
   let y = top + (maxH - T.L.length*T.lh)/2 + T.s*.86, n = 0;
   T.L.forEach((line, li) => {
     let x = cx - T.lw[li]/2;
+    if (line.every(wi => isAr(T.words[wi]))){               // Arabic line: one joined phrase
+      drawLetter(c, line.map(wi => T.words[wi]).join(' '), x, y, T.s, p, 0); y += T.lh; return;
+    }
     const order = line.some(wi => isAr(T.words[wi])) ? [...line].reverse() : line;
     order.forEach((wi, j) => { if (j) x += T.wg; const us = units(T.words[wi]);
       us.forEach((ch, k) => { const rot = Math.sin(n++*2.3)*.035; const w = drawLetter(c, ch, x, y, T.s, p, rot); x += w + (k < us.length-1 ? T.gap : 0); });
@@ -750,10 +753,20 @@ function renderBoard(){
   const ctx = sizeCanvas(cv, w, 1.6); drawingMain = true; try { drawBoard(ctx, cv.width, cv.height, PAL[state.backing], state.template); } finally { drawingMain = false; }
   updateSelBar();
 }
+function arTitleRatio(){
+  const c = document.createElement('canvas').getContext('2d'); c.font = `400 100px ${F.display}`; c.direction = 'rtl';
+  return (c.measureText(state.title.trim()).width + 40) / 130;
+}
 function renderLetters(){
   const wrap = $('#letters'); wrap.innerHTML = '';
   wrap.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
   const p = palFor();
+  if (isAr(state.title)){   // Arabic titles stay whole: one joined piece, never letter by letter
+    const ratio = arTitleRatio(), wide = Math.min(560, Math.max(120, 56 * ratio));
+    const cv = document.createElement('canvas'); cv.title = state.title; cv.style.width = wide + 'px'; cv.style.height = '56px';
+    const ctx = sizeCanvas(cv, wide, wide/56); ctx.fillStyle = p.backing; ctx.fillRect(0,0,cv.width,cv.height);
+    drawLetterPage(ctx, cv.width, cv.height, p, state.title.trim(), false); wrap.appendChild(cv); return;
+  }
   state.title.toUpperCase().split(/\s+/).filter(Boolean).forEach((word, wi) => {
     if (wi) { const g = document.createElement('span'); g.className='gap'; wrap.appendChild(g); }
     units(word).forEach(ch => {
@@ -767,6 +780,7 @@ function renderLetters(){
 function drawLetterPage(c, w, h, p, ch, paper){
   if (paper){ c.fillStyle='#ffffff'; c.fillRect(0,0,w,h); }
   let s = h*.78; c.font = `400 ${s}px ${F.display}`;
+  c.direction = isAr(ch) ? 'rtl' : 'ltr';
   const mw = c.measureText(ch).width; if (mw > w*.84){ s *= w*.84/mw; c.font = `400 ${s}px ${F.display}`; }
   c.textAlign='center'; c.textBaseline='alphabetic'; c.lineJoin='round'; c.direction = isAr(ch) ? 'rtl' : 'ltr';
   c.lineWidth = s*(paper ? .025 : .09); c.strokeStyle = paper ? '#555555' : p.dark;
@@ -890,7 +904,34 @@ async function buildPdf(){
   doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(30); doc.text(safe(`${state.title} - ${TEMPLATES[state.template].name} layout on ${p.name.toLowerCase()} backing`), 10, 10);
   place(cover, 297, 210, 15);
   // letters
-  const words = state.title.toUpperCase().split(/\s+/).filter(Boolean); let total = words.reduce((a, w) => a + units(w).length, 0), n = 0;
+  if (isAr(state.title)){
+    // Arabic: the whole title is one joined banner, tiled across landscape pages, right part first
+    const PW = 267, PH = 180, pxmm = 9, title = state.title.trim();
+    const mc = document.createElement('canvas').getContext('2d'); mc.direction = 'rtl';
+    const widthAt = sz => { mc.font = `400 ${sz}px ${F.display}`; return mc.measureText(title).width; };
+    let fs = 125 * pxmm;                                         // letters about 12 cm tall
+    const w0 = widthAt(fs) + 20 * pxmm;
+    const pages = Math.max(1, Math.ceil(w0 / (PW * pxmm)));
+    fs = Math.min(150 * pxmm, fs * (pages * PW * pxmm * .94) / w0);   // grow to fill the pages evenly
+    const full = document.createElement('canvas'); full.width = Math.round(pages * PW * pxmm); full.height = Math.round(PH * pxmm);
+    const fc = full.getContext('2d'); fc.fillStyle = '#ffffff'; fc.fillRect(0, 0, full.width, full.height);
+    fc.font = `400 ${fs}px ${F.display}`; fc.direction = 'rtl'; fc.textAlign = 'center'; fc.textBaseline = 'middle'; fc.lineJoin = 'round';
+    fc.lineWidth = fs * .025; fc.strokeStyle = '#555555'; fc.fillStyle = '#ffffff';
+    fc.strokeText(title, full.width / 2, full.height / 2); fc.fillText(title, full.width / 2, full.height / 2);
+    for (let k = 0; k < pages; k++){
+      const slice = pages - 1 - k;                           // start from the right-hand end
+      const cv = document.createElement('canvas'); cv.width = Math.round(PW * pxmm); cv.height = full.height;
+      const cx = cv.getContext('2d'); cx.drawImage(full, -slice * PW * pxmm, 0);
+      if (pages > 1){ cx.setLineDash([18, 12]); cx.strokeStyle = '#999999'; cx.lineWidth = 3;
+        if (slice > 0){ cx.beginPath(); cx.moveTo(1.5, 0); cx.lineTo(1.5, cv.height); cx.stroke(); }
+        if (slice < pages - 1){ cx.beginPath(); cx.moveTo(cv.width - 1.5, 0); cx.lineTo(cv.width - 1.5, cv.height); cx.stroke(); } }
+      doc.addPage('a4', 'landscape');
+      caption(pages > 1 ? `Title part ${k+1} of ${pages} · Arabic title prints as one joined piece, start with part 1 on the right · join the parts at the dashed edges`
+                        : 'Title · Arabic title prints as one joined piece · print on white card and cut on the outline', 297);
+      place(cv, 297, 210, 12); await new Promise(r => setTimeout(r, 0));
+    }
+  }
+  const words = isAr(state.title) ? [] : state.title.toUpperCase().split(/\s+/).filter(Boolean); let total = words.reduce((a, w) => a + units(w).length, 0), n = 0;
   for (const [wi, word] of words.entries()){
     for (const [li, ch] of units(word).entries()){
       n++; const arw = isAr(ch); doc.addPage('a4', arw ? 'landscape' : 'portrait');

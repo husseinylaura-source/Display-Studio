@@ -2,7 +2,7 @@
 
 A free website that helps teachers plan a classroom bulletin board and print every piece.
 
-Boards can be made in **English or Arabic**. Choose the board language at the top of step 1: every ready-made board has a full Arabic version (`library_ar.js`), the pieces use an Arabic font and read right to left, and Arabic titles print word by word so the letters stay joined.
+Boards can be made in **English or Arabic**. Choose the board language at the top of step 1: every ready-made board has a full Arabic version (`library_ar.js`), the pieces use an Arabic font and read right to left, and Arabic titles are never split into letters: the whole title prints as one joined piece, spread across as many landscape pages as it needs, starting from the right.
 
 Teachers can start from **41 ready-made boards** or type their own:
 
