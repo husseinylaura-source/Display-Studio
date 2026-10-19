@@ -1,10 +1,21 @@
 (() => {
 const CONFIG = window.BOARD_CONFIG || {};
+const isAr = t => /[\u0600-\u06FF]/.test(String(t || ''));
+const F_EN = {display:"'Archivo Black','Arial Black',Impact,sans-serif", body:"'Nunito','Trebuchet MS',sans-serif", hand:"'Gochi Hand','Comic Sans MS',cursive"};
+const F_AR = {display:"'Lalezar','Archivo Black','Arial Black',sans-serif", body:"'Cairo','Nunito','Tahoma',sans-serif", hand:"'Cairo','Nunito','Tahoma',sans-serif"};
 const F = {
-  display: "'Archivo Black','Arial Black',Impact,sans-serif",
-  body: "'Nunito','Trebuchet MS',sans-serif",
-  hand: "'Gochi Hand','Comic Sans MS',cursive"
+  get display(){ return (typeof state !== 'undefined' && state.lang === 'ar') ? F_AR.display : F_EN.display; },
+  get body(){ return (typeof state !== 'undefined' && state.lang === 'ar') ? F_AR.body : F_EN.body; },
+  get hand(){ return (typeof state !== 'undefined' && state.lang === 'ar') ? F_AR.hand : F_EN.hand; }
 };
+const AR_LABELS = {'BIG QUESTION':'سؤال كبير','DID YOU KNOW?':'هل تعلم؟','KEY WORD':'كلمة مفتاحية',
+  'GLUE THIS STRIP · FOLD ON THE DASHED LINE':'ألصق هذا الشريط · اطوِ على الخط المتقطع','LIFT TO FIND OUT':'ارفع لتعرف',
+  'STICK THE FLAP STRIP HERE':'ألصق شريط الغطاء هنا','ANSWER':'الإجابة','CHALLENGE':'تحدٍّ','PICK A CHALLENGE':'اختر تحديًا',
+  'Take a card, try it, put it back.':'خذ بطاقة، جرّبها، ثم أعدها.','ADD YOUR IDEA':'أضف فكرتك','Pin student work here':'ثبّت أعمال الطلاب هنا',
+  'Great':'رائع','Good':'جيد','Okay':'لا بأس','Low':'متعب','Need to talk':'أريد التحدث','Put your sticky note under how you feel':'ضع ورقتك تحت ما تشعر به',
+  'NOTICE':'إعلان','Write a notice here':'اكتب إعلانًا هنا','Student name':'اسم الطالب','HOUSE':'بيت','POINTS':'النقاط','IDEA':'فكرة','MY IDEA':'فكرتي',
+  'Name: ______________':'الاسم: ______________','Role':'الدور'};
+const tr = t => (typeof state !== 'undefined' && state.lang === 'ar' && AR_LABELS[t]) || t;
 const PAL = {
   black: {name:'Black', backing:'#151515', trim:'#262626', dark:'#2c2c2c', mid:'#5e5e5e', light:'#a9a9a9', card:'#ededed', ink:'#1b1b1b'},
   green: {name:'Green', backing:'#2b5a3c', trim:'#214a31', dark:'#1b3a26', mid:'#3f7d54', light:'#93c3a0', card:'#e4f1e7', ink:'#16301f'},
@@ -77,7 +88,7 @@ function palFor(pieceKey){
 const pieceKey = (tpl, type, idx) => `${tpl}|${type}|${idx}`;
 
 let content = JSON.parse(JSON.stringify(EXAMPLE));
-let state = {boardType:'topic', topicTemplate:'grid',
+let state = {lang:'en', boardType:'topic', topicTemplate:'grid',
   team:{subtitle:'Student leadership 2026–27', introHeading:'Our team', introText:'Meet the students who lead, represent and serve our school community.',
     pocketTitle:'HAVE YOUR SAY', pocketText:'Take a slip, write your idea and post it here.',
     members:[{name:'', role:'President'},{name:'', role:'Vice President'},{name:'', role:'Team member'},{name:'', role:'Team member'}]},
@@ -103,7 +114,22 @@ function normalize(raw, title, idea){
     voice: arr(r.voice, 3, base.voice, v => typeof v === 'string' && v.trim() ? clip(v,50) : null)
   };
 }
+function localContentAr(title, idea){
+  const t = title.trim() || 'لوحتنا';
+  const parts = String(idea||'').split(/(?<=[.!?؟])\s+|[،;؛]\s*|\s+و(?=\S)/).map(s => s.trim()).filter(s => s.split(' ').length >= 3);
+  const fallback = [{heading:'فكرة رئيسة', text:`ما أهم شيء يجب أن نعرفه عن ${t}؟`},{heading:'في حياتنا', text:`أين نرى ${t} في العالم من حولنا؟`},
+    {heading:'هل تعلم؟', text:`ابحث عن معلومة مدهشة عن ${t} وشاركها.`},{heading:'الصورة الكبيرة', text:`لماذا يهمنا ${t} ويهم الآخرين؟`}];
+  return {
+    subtitle: clip(parts[0] || `نستكشف ${t} معًا`, 60), bigQuestion: `ماذا سيتغير لو لم يكن ${t} موجودًا؟`,
+    facts: [0,1,2,3].map(i => parts[i] ? {heading: clip(parts[i].split(' ').slice(0,3).join(' '), 28), text: clip(parts[i], 150)} : fallback[i]),
+    vocab: [1,2,3,4].map(i => ({term:'كلمة مفتاحية ' + i, def:'أضف التعريف هنا.'})),
+    flaps: [{q:`ماذا تعرف عن ${t}؟`, a:'شارك فكرتك مع زميلك ثم راجع اللوحة.'},{q:`لماذا ${t} مهم؟`, a:'ابحث عن الإجابة في المعلومات على هذه اللوحة.'},{q:`كيف تشرح ${t} لطالب أصغر منك؟`, a:'استخدم صورة واحدة وجملة واحدة.'}],
+    challenges: [`اكتب سؤالًا عن ${t}.`, 'اختر معلومة من اللوحة واشرحها لصديقك.', 'ارسم مخططًا يوضح الفكرة الرئيسة.', 'اربط هذا الموضوع بمادة أخرى.'],
+    celebrate: {heading:'نجوم التعلّم', prompt:`تفكير رائع في ${t}`}, voice: ['تعلمت أن…', 'فاجأني أن…', 'ما زلت أتساءل…']
+  };
+}
 function localContent(title, idea){
+  if (typeof state !== 'undefined' && state.lang === 'ar') return localContentAr(title, idea);
   const t = title.trim() || 'Our Board';
   const parts = String(idea||'').split(/(?<=[.!?])\s+|;\s*|,\s+(?:and\s+)?/).map(s => s.trim()).filter(s => s.split(' ').length >= 3);
   const facts = [0,1,2,3].map(i => parts[i]
@@ -134,7 +160,7 @@ function wrapLines(c, text, maxW){
   if (cur) out.push(cur); return out;
 }
 function fit(c, text, o){
-  const lh = o.lh || 1.18, wt = o.weight ?? 800;
+  const lh = o.lh || (isAr(text) ? 1.42 : 1.18), wt = o.weight ?? 800;
   for (let s = o.max; s >= (o.min||6); s -= Math.max(1, s*0.05)){
     c.font = `${wt} ${s}px ${o.family}`;
     const L = wrapLines(c, text, o.maxW);
@@ -145,6 +171,7 @@ function fit(c, text, o){
 function text(c, str, x, cy, o, color, align='center'){
   const f = fit(c, str, o);
   c.font = `${o.weight ?? 800} ${f.size}px ${o.family}`; c.fillStyle = color; c.textAlign = align; c.textBaseline = 'middle';
+  c.direction = isAr(str) ? 'rtl' : 'ltr';
   const total = f.lines.length * f.size * f.lh; let y = cy - total/2 + f.size*f.lh/2;
   for (const l of f.lines){ c.fillText(l, x, y); y += f.size*f.lh; }
   return f;
@@ -236,6 +263,24 @@ const IB = [
     ['Creativity, Activity, Service','HeartHandshake','Learning through creative, active and service experiences.']]}
 ];
 
+const IB_AR = {
+  lp:{short:'ملامح المتعلم', items:[['باحثون','نحن فضوليون ونطرح الأسئلة لنكتشف.'],['مطّلعون','نستكشف الأفكار ونبني فهمًا عميقًا.'],['مفكّرون','نفكر بطريقة ناقدة ومبدعة لحل المشكلات.'],
+    ['متواصلون','نعبّر عن أفكارنا بثقة ونحسن الاستماع.'],['مبدئيّون','نتصرف بصدق وعدل ونتحمل مسؤولية أفعالنا.'],['منفتحو العقل','نقدّر الآراء والثقافات والتقاليد الأخرى.'],
+    ['مهتمّون بالآخرين','نُظهر اللطف ونعمل على مساعدة الآخرين.'],['مقدامون','نجرّب أشياء جديدة ونتعلم من أخطائنا.'],['متوازنون','نهتم بعقولنا وأجسامنا ورفاهيتنا.'],['متأمّلون','نتأمل في تعلّمنا لننمو.']]},
+  atl:{short:'مهارات التعلم', items:[['مهارات التفكير','أستطيع التحليل والتقييم وابتكار أفكار جديدة.'],['مهارات التواصل','أستطيع تبادل الأفكار بوضوح.'],['المهارات الاجتماعية','أستطيع التعاون والعمل جيدًا مع الآخرين.'],
+    ['مهارات الإدارة الذاتية','أستطيع تنظيم وقتي وإدارة مشاعري.'],['مهارات البحث','أستطيع إيجاد المعلومات والتحقق منها واستخدامها.']]},
+  gc:{short:'السياق العالمي', items:[['الهويات والعلاقات','من أنا؟ من نحن؟'],['التوجّه في المكان والزمان','من أين أتينا وإلى أين نمضي.'],['التعبير الشخصي والثقافي','كيف نعبّر عن أفكارنا ومشاعرنا وثقافتنا.'],
+    ['الابتكار العلمي والتقني','كيف نفهم عالمنا ونشكّله.'],['العولمة والاستدامة','كيف يترابط كل شيء وما أثرنا.'],['العدالة والتنمية','الحقوق والمسؤوليات وعالم أكثر عدلًا.']]},
+  kc:{short:'مفهوم رئيس', items:[['الجماليات',''],['التغيير',''],['التواصل',''],['المجتمعات',''],['الروابط',''],['الإبداع',''],['الثقافة',''],['التنمية',''],
+    ['الشكل',''],['التفاعلات العالمية',''],['الهوية',''],['المنطق',''],['المنظور',''],['العلاقات',''],['الأنظمة',''],['الزمان والمكان والحيّز','']]},
+  pyp:{short:'محور بين المواد', items:[['من نحن',''],['أين نحن في المكان والزمان',''],['كيف نعبّر عن أنفسنا',''],['كيف يعمل العالم',''],['كيف ننظّم أنفسنا',''],['المشاركة في الكوكب','']]},
+  dp:{short:'جوهر الدبلوما', items:[['نظرية المعرفة','كيف نعرف ما ندّعي معرفته؟'],['البحث الموسّع','بحث مستقل في موضوع تختاره.'],['الإبداع والنشاط والخدمة','التعلم من خلال تجارب الإبداع والنشاط والخدمة.']]}
+};
+function ibCard(g, i){
+  const it = g.items[i], A = state.lang === 'ar' && IB_AR[g.id];
+  return A ? {id:`ib-${g.id}-${i}`, kind:'ib', group:A.short, label:A.items[i][0], icon:it[1], desc:A.items[i][1]}
+           : {id:`ib-${g.id}-${i}`, kind:'ib', group:g.short, label:it[0], icon:it[1], desc:it[2]};
+}
 const photoRatio = ex => Math.max(.5, Math.min(2.2, ex.ratio || 1.33));
 function aspectOf(ex){
   if (ex.kind !== 'photo') return EXTRA[ex.kind].aspect;
@@ -301,7 +346,7 @@ const TYPES = {
     rr(c,u*2,u*9,w-u*4,h-u*11,u*7); c.fillStyle=p.card; c.fill(); c.lineWidth=u*1.6; c.strokeStyle=p.dark; c.stroke();
     c.save(); c.globalAlpha=.5; c.font=`400 ${h*.86}px ${F.display}`; c.fillStyle=p.light; c.textAlign='right'; c.textBaseline='alphabetic'; c.fillText('?', w-u*7, h-u*7); c.restore();
     const tw=w*.52; rr(c,(w-tw)/2,0,tw,u*18,u*5); c.fillStyle=p.dark; c.fill();
-    text(c,'BIG QUESTION',w/2,u*9,{family:F.display,weight:400,maxW:tw*.84,maxH:u*11,max:u*10},'#ffffff');
+    text(c,tr('BIG QUESTION'),w/2,u*9,{family:F.display,weight:400,maxW:tw*.84,maxH:u*11,max:u*10},'#ffffff');
     text(c,d.bigQuestion,w/2,h*.6,{family:F.body,weight:900,maxW:w*.78,maxH:h*.6,max:h*.15},p.ink);
   }}]},
   fact: {name:'Fact card', tag:'edu', pages:(d,i) => [{aspect:.8, draw(c,w,h,p){
@@ -311,13 +356,13 @@ const TYPES = {
     c.strokeStyle=p.dark; c.lineWidth=u*1.4; c.beginPath(); c.moveTo(u*1.5,h*.27); c.lineTo(w-u*1.5,h*.27); c.stroke();
     text(c,f.heading.toUpperCase(),w/2,h*.14,{family:F.display,weight:400,maxW:w*.8,maxH:h*.17,max:h*.08},'#ffffff');
     text(c,f.text,w/2,h*.58,{family:F.body,weight:700,maxW:w*.8,maxH:h*.5,max:h*.07},p.ink);
-    text(c,'DID YOU KNOW?',w/2,h*.9,{family:F.body,weight:900,maxW:w*.7,maxH:h*.06,max:h*.04},p.mid);
+    text(c,tr('DID YOU KNOW?'),w/2,h*.9,{family:F.body,weight:900,maxW:w*.7,maxH:h*.06,max:h*.04},p.mid);
   }}]},
   vocab: {name:'Key word card', tag:'edu', pages:(d,i) => [{aspect:1.25, draw(c,w,h,p){
     const u=Math.min(w,h)/100, v=d.vocab[i];
     cardBox(c,w,h,u,p.dark,p.ink,7);
     rr(c,u*6,u*6,w-u*12,h-u*12,u*5); c.lineWidth=u*.8; c.setLineDash([u*3,u*2.4]); c.strokeStyle=p.light; c.stroke(); c.setLineDash([]);
-    text(c,'KEY WORD',w/2,h*.17,{family:F.body,weight:900,maxW:w*.6,maxH:h*.08,max:h*.065},p.light);
+    text(c,tr('KEY WORD'),w/2,h*.17,{family:F.body,weight:900,maxW:w*.6,maxH:h*.08,max:h*.065},p.light);
     text(c,v.term,w/2,h*.36,{family:F.display,weight:400,maxW:w*.8,maxH:h*.22,max:h*.17},'#ffffff');
     c.fillStyle=p.light; c.fillRect(w*.3,h*.5,w*.4,u*1);
     text(c,v.def,w/2,h*.7,{family:F.body,weight:700,maxW:w*.78,maxH:h*.28,max:h*.09},p.card);
@@ -328,17 +373,17 @@ const TYPES = {
       rr(c,u*1.5,u*1.5,w-u*3,h-u*3,u*6); c.fillStyle=p.mid; c.fill(); c.lineWidth=u*1.4; c.strokeStyle=p.dark; c.stroke();
       c.save(); rr(c,u*1.5,u*1.5,w-u*3,h-u*3,u*6); c.clip(); c.fillStyle=p.light; c.fillRect(0,0,w,strip); c.restore();
       c.setLineDash([u*3,u*2]); c.lineWidth=u*.8; c.strokeStyle=p.dark; c.beginPath(); c.moveTo(u*1.5,strip); c.lineTo(w-u*1.5,strip); c.stroke(); c.setLineDash([]);
-      text(c,'GLUE THIS STRIP · FOLD ON THE DASHED LINE',w/2,strip/2+u,{family:F.body,weight:900,maxW:w*.84,maxH:strip*.5,max:strip*.3},p.dark);
+      text(c,tr('GLUE THIS STRIP · FOLD ON THE DASHED LINE'),w/2,strip/2+u,{family:F.body,weight:900,maxW:w*.84,maxH:strip*.5,max:strip*.3},p.dark);
       text(c,f.q,w/2,h*.5,{family:F.body,weight:900,maxW:w*.8,maxH:h*.42,max:h*.11},'#ffffff');
       const pw=w*.56, ph=h*.12; rr(c,(w-pw)/2,h*.78,pw,ph,ph/2); c.fillStyle=p.dark; c.fill();
-      text(c,'LIFT TO FIND OUT',w/2,h*.78+ph/2,{family:F.display,weight:400,maxW:pw*.84,maxH:ph*.6,max:ph*.45},'#ffffff');
+      text(c,tr('LIFT TO FIND OUT'),w/2,h*.78+ph/2,{family:F.display,weight:400,maxW:pw*.84,maxH:ph*.6,max:ph*.45},'#ffffff');
     }},
     {label:'base (answer)', aspect:1.1, draw(c,w,h,p){
       const u=Math.min(w,h)/100, f=d.flaps[i], strip=h*.15;
       cardBox(c,w,h,u,p.card,p.dark,6);
       rr(c,u*5,u*4,w-u*10,strip-u*4,u*3); c.setLineDash([u*3,u*2]); c.lineWidth=u*.8; c.strokeStyle=p.mid; c.stroke(); c.setLineDash([]);
-      text(c,'STICK THE FLAP STRIP HERE',w/2,u*2+strip/2,{family:F.body,weight:900,maxW:w*.7,maxH:strip*.4,max:strip*.28},p.mid);
-      text(c,'ANSWER',w/2,h*.3,{family:F.display,weight:400,maxW:w*.5,maxH:h*.1,max:h*.08},p.mid);
+      text(c,tr('STICK THE FLAP STRIP HERE'),w/2,u*2+strip/2,{family:F.body,weight:900,maxW:w*.7,maxH:strip*.4,max:strip*.28},p.mid);
+      text(c,tr('ANSWER'),w/2,h*.3,{family:F.display,weight:400,maxW:w*.5,maxH:h*.1,max:h*.08},p.mid);
       text(c,f.a,w/2,h*.62,{family:F.body,weight:800,maxW:w*.8,maxH:h*.48,max:h*.1},p.ink);
     }}
   ]},
@@ -346,18 +391,18 @@ const TYPES = {
     {label:'pocket', aspect:1.3, draw(c,w,h,p){
       const u=Math.min(w,h)/100;
       c.save(); c.translate(w*.5,h*.2); c.rotate(-.06); rr(c,-w*.3,-h*.17,w*.6,h*.5,u*4); c.fillStyle=p.card; c.fill(); c.lineWidth=u; c.strokeStyle=p.mid; c.stroke();
-      text(c,'CHALLENGE',0,-h*.08,{family:F.display,weight:400,maxW:w*.4,maxH:h*.08,max:h*.06},p.mid); c.restore();
+      text(c,tr('CHALLENGE'),0,-h*.08,{family:F.display,weight:400,maxW:w*.4,maxH:h*.08,max:h*.06},p.mid); c.restore();
       c.beginPath(); c.moveTo(u*1.5,h*.3); c.lineTo(w*.5,h*.46); c.lineTo(w-u*1.5,h*.3); c.lineTo(w-u*1.5,h-u*1.5); c.lineTo(u*1.5,h-u*1.5); c.closePath();
       c.fillStyle=p.dark; c.fill(); c.lineWidth=u*1.2; c.strokeStyle=p.ink; c.lineJoin='round'; c.stroke();
-      text(c,'PICK A CHALLENGE',w/2,h*.64,{family:F.display,weight:400,maxW:w*.8,maxH:h*.14,max:h*.11},'#ffffff');
-      text(c,'Take a card, try it, put it back.',w/2,h*.82,{family:F.body,weight:800,maxW:w*.8,maxH:h*.1,max:h*.065},p.light);
+      text(c,tr('PICK A CHALLENGE'),w/2,h*.64,{family:F.display,weight:400,maxW:w*.8,maxH:h*.14,max:h*.11},'#ffffff');
+      text(c,tr('Take a card, try it, put it back.'),w/2,h*.82,{family:F.body,weight:800,maxW:w*.8,maxH:h*.1,max:h*.065},p.light);
     }},
     {label:'challenge cards (cut out)', aspect:1.414, board:false, draw(c,w,h,p){
       const u=Math.min(w,h)/100, cw=w/2, ch=h/2;
       d.challenges.forEach((t,k) => {
         const x=(k%2)*cw, y=Math.floor(k/2)*ch;
         rr(c,x+u*3,y+u*3,cw-u*6,ch-u*6,u*4); c.fillStyle=p.card; c.fill(); c.lineWidth=u*1.1; c.strokeStyle=p.mid; c.stroke();
-        text(c,'CHALLENGE',x+cw/2,y+ch*.22,{family:F.display,weight:400,maxW:cw*.6,maxH:ch*.1,max:ch*.09},p.mid);
+        text(c,tr('CHALLENGE'),x+cw/2,y+ch*.22,{family:F.display,weight:400,maxW:cw*.6,maxH:ch*.1,max:ch*.09},p.mid);
         text(c,t,x+cw/2,y+ch*.58,{family:F.body,weight:800,maxW:cw*.78,maxH:ch*.52,max:ch*.11},p.ink);
       });
       c.setLineDash([u*2,u*1.6]); c.lineWidth=u*.4; c.strokeStyle='#9a9a9a';
@@ -374,7 +419,7 @@ const TYPES = {
     text(c,d.voice[i],w/2,h*.2,{family:F.hand,weight:400,maxW:w*.8,maxH:h*.16,max:h*.13},p.ink);
     c.strokeStyle=p.light; c.lineWidth=u*.7;
     for (let k=0;k<3;k++){ const y=h*(.38+k*.12); c.beginPath(); c.moveTo(w*.12,y); c.lineTo(w*.88,y); c.stroke(); }
-    text(c,'ADD YOUR IDEA',w*.9,h*.88,{family:F.body,weight:900,maxW:w*.5,maxH:h*.07,max:h*.055},p.mid,'right');
+    text(c,tr('ADD YOUR IDEA'),w*.9,h*.88,{family:F.body,weight:900,maxW:w*.5,maxH:h*.07,max:h*.055},p.mid,'right');
   }}]},
   star: {name:'Celebration star', tag:'cel', pages:d => [{aspect:1, draw(c,w,h,p){
     const u=w/100, cx=w/2, cy=h*.53;
@@ -390,7 +435,7 @@ const TYPES = {
     rr(c,u*1.5,u*8,w-u*3,h-u*9.5,u*4); c.fillStyle=p.mid; c.fill(); c.lineWidth=u*1.2; c.strokeStyle=p.dark; c.stroke();
     rr(c,u*8,u*15,w-u*16,h-u*23,u*2); c.fillStyle=p.card; c.fill();
     rr(c,u*12,u*24,w-u*24,h-u*36,u*2); c.setLineDash([u*2.5,u*2]); c.lineWidth=u*.7; c.strokeStyle=p.light; c.stroke(); c.setLineDash([]);
-    text(c,'Pin student work here',w/2,h*.6,{family:F.hand,weight:400,maxW:w*.6,maxH:h*.1,max:h*.07},p.light);
+    text(c,tr('Pin student work here'),w/2,h*.6,{family:F.hand,weight:400,maxW:w*.6,maxH:h*.1,max:h*.07},p.light);
     const pw=w*.62, ph=u*17; rr(c,(w-pw)/2,0,pw,ph,u*4); c.fillStyle=p.dark; c.fill();
     text(c,d.celebrate.heading.toUpperCase(),w/2,ph/2,{family:F.display,weight:400,maxW:pw*.86,maxH:ph*.6,max:ph*.5},'#ffffff');
     [[u*8,h-u*8],[w-u*8,h-u*8]].forEach(([x,y]) => { starPath(c,x,y,u*5,u*2.3); c.fillStyle=p.light; c.fill(); });
@@ -433,16 +478,16 @@ Object.assign(TYPES, {
     const u = Math.min(w,h)/100, Y = state.yb, cls = Y.classes[i] || '', im = Y.tt[i] && Y.tt[i].img;
     cardBox(c, w, h, u, p.card, p.dark, 4);
     c.save(); rr(c, u*1.5, u*1.5, w-u*3, h-u*3, u*4); c.clip(); c.fillStyle = p.mid; c.fillRect(0, 0, w, h*.17); c.restore();
-    text(c, `${cls} TIMETABLE`, w/2, h*.095, {family:F.display, weight:400, maxW:w*.8, maxH:h*.1, max:h*.09}, '#ffffff');
+    text(c, state.lang === 'ar' ? `جدول ${cls}` : `${cls} TIMETABLE`, w/2, h*.095, {family:F.display, weight:400, maxW:w*.8, maxH:h*.1, max:h*.09}, '#ffffff');
     const x = w*.05, y = h*.22, aw = w*.9, ah = h*.72;
     if (imgOk(im)) drawContain(c, im, x, y, aw, ah);
     else { rr(c, x, y, aw, ah, u*2); c.setLineDash([u*2.5, u*2]); c.lineWidth = u*.7; c.strokeStyle = p.light; c.stroke(); c.setLineDash([]);
-      text(c, `Pin the ${cls} timetable here`, w/2, y + ah/2, {family:F.hand, weight:400, maxW:aw*.8, maxH:ah*.3, max:h*.09}, p.mid); }
+      text(c, state.lang === 'ar' ? `ثبّت جدول ${cls} هنا` : `Pin the ${cls} timetable here`, w/2, y + ah/2, {family:F.hand, weight:400, maxW:aw*.8, maxH:ah*.3, max:h*.09}, p.mid); }
   }}]},
   mood: {name:'Wellbeing check-in', tag:'int', pages:() => [{aspect:1.33, draw(c,w,h,p){
     const u = Math.min(w,h)/100; cardBox(c, w, h, u, p.card, p.dark, 6);
     text(c, state.yb.mood, w/2, h*.15, {family:F.display, weight:400, maxW:w*.84, maxH:h*.16, max:h*.09}, p.ink);
-    const labels = ['Great','Good','Okay','Low','Need to talk'];
+    const labels = ['Great','Good','Okay','Low','Need to talk'].map(tr);
     labels.forEach((lb, k) => {
       const cx = w*(.12 + k*.19), cy = h*.47, r = w*.07;
       c.beginPath(); c.arc(cx, cy, r, 0, Math.PI*2); c.fillStyle = p.light; c.fill(); c.lineWidth = u*.9; c.strokeStyle = p.dark; c.stroke();
@@ -456,14 +501,14 @@ Object.assign(TYPES, {
       if (k === 4){ c.beginPath(); c.arc(cx + r*.42, cy + r*.12, r*.09, 0, Math.PI*2); c.fillStyle = p.mid; c.fill(); }
       text(c, lb, cx, cy + r + h*.07, {family:F.body, weight:900, maxW:w*.17, maxH:h*.1, max:h*.055}, p.ink);
     });
-    text(c, 'Put your sticky note under how you feel', w/2, h*.87, {family:F.hand, weight:400, maxW:w*.84, maxH:h*.1, max:h*.075}, p.mid);
+    text(c, tr('Put your sticky note under how you feel'), w/2, h*.87, {family:F.hand, weight:400, maxW:w*.84, maxH:h*.1, max:h*.075}, p.mid);
   }}]},
   notice: {name:'Notice', tag:'int', pages:(d,i) => [{aspect:.9, draw(c,w,h,p){
     const u = Math.min(w,h)/100; cardBox(c, w, h, u, p.card, p.dark, 4);
     c.beginPath(); c.arc(w/2, h*.09, w*.055, 0, Math.PI*2); c.fillStyle = p.mid; c.fill(); c.lineWidth = u; c.strokeStyle = p.dark; c.stroke();
     c.beginPath(); c.arc(w/2 - w*.015, h*.08, w*.015, 0, Math.PI*2); c.fillStyle = p.light; c.fill();
-    text(c, 'NOTICE', w/2, h*.22, {family:F.display, weight:400, maxW:w*.6, maxH:h*.09, max:h*.07}, p.mid);
-    text(c, state.yb.notices[i] || 'Write a notice here', w/2, h*.6, {family:F.body, weight:800, maxW:w*.8, maxH:h*.6, max:h*.11}, p.ink);
+    text(c, tr('NOTICE'), w/2, h*.22, {family:F.display, weight:400, maxW:w*.6, maxH:h*.09, max:h*.07}, p.mid);
+    text(c, state.yb.notices[i] || tr('Write a notice here'), w/2, h*.6, {family:F.body, weight:800, maxW:w*.8, maxH:h*.6, max:h*.11}, p.ink);
   }}]},
   leader: {name:'Student leader', tag:'cel', pages:(d,i) => [{aspect:.75, draw(c,w,h,p){
     const u = Math.min(w,h)/100, L = state.yb.leaders[i] || {}; cardBox(c, w, h, u, p.card, p.dark, 5);
@@ -472,7 +517,7 @@ Object.assign(TYPES, {
     if (imgOk(L.img)) drawCover(c, L.img, x, y, pw, ph);
     else { c.fillStyle = p.mid; c.beginPath(); c.arc(w/2, y + ph*.38, pw*.17, 0, Math.PI*2); c.fill(); c.beginPath(); c.ellipse(w/2, y + ph*1.02, pw*.36, ph*.36, 0, Math.PI, 0); c.fill(); }
     c.restore();
-    text(c, L.name || 'Student name', w/2, h*.77, {family:F.body, weight:900, maxW:w*.86, maxH:h*.09, max:h*.07}, p.ink);
+    text(c, L.name || tr('Student name'), w/2, h*.77, {family:F.body, weight:900, maxW:w*.86, maxH:h*.09, max:h*.07}, p.ink);
     const bh = h*.1; rr(c, w*.08, h*.85, w*.84, bh, bh/2); c.fillStyle = p.dark; c.fill();
     text(c, (L.role || '').toUpperCase(), w/2, h*.85 + bh/2, {family:F.body, weight:900, maxW:w*.76, maxH:bh*.6, max:bh*.45}, '#ffffff');
   }}]},
@@ -482,9 +527,9 @@ Object.assign(TYPES, {
     rr(c, u*1.5, u*1.5, w-u*3, h-u*3, u*9); c.fillStyle = col; c.fill(); c.lineWidth = u*1.8; c.strokeStyle = shade(col, .35); c.stroke();
     rr(c, u*5, u*5, w-u*10, h-u*10, u*6); c.lineWidth = u*.8; c.strokeStyle = ink === '#ffffff' ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.35)'; c.stroke();
     text(c, (H.name || '').toUpperCase(), w/2, h*.25, {family:F.display, weight:400, maxW:w*.82, maxH:h*.2, max:h*.17}, ink);
-    text(c, 'HOUSE', w/2, h*.41, {family:F.body, weight:900, maxW:w*.5, maxH:h*.08, max:h*.07}, ink);
+    text(c, tr('HOUSE'), w/2, h*.41, {family:F.body, weight:900, maxW:w*.5, maxH:h*.08, max:h*.07}, ink);
     rr(c, w*.12, h*.53, w*.76, h*.33, u*4); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = u*.8; c.strokeStyle = shade(col, .35); c.stroke();
-    text(c, 'POINTS', w*.18, h*.6, {family:F.body, weight:900, maxW:w*.3, maxH:h*.06, max:h*.05}, '#555555', 'left');
+    text(c, tr('POINTS'), w*.18, h*.6, {family:F.body, weight:900, maxW:w*.3, maxH:h*.06, max:h*.05}, '#555555', 'left');
   }}]}
 });
 function yearItems(){
@@ -518,7 +563,7 @@ Object.assign(TYPES, {
     {label:'pocket', aspect:1.3, draw(c,w,h,p){
       const u = Math.min(w,h)/100, T = state.team;
       c.save(); c.translate(w*.5,h*.2); c.rotate(-.06); rr(c,-w*.3,-h*.17,w*.6,h*.5,u*4); c.fillStyle=p.card; c.fill(); c.lineWidth=u; c.strokeStyle=p.mid; c.stroke();
-      text(c,'IDEA',0,-h*.08,{family:F.display,weight:400,maxW:w*.4,maxH:h*.08,max:h*.06},p.mid); c.restore();
+      text(c,tr('IDEA'),0,-h*.08,{family:F.display,weight:400,maxW:w*.4,maxH:h*.08,max:h*.06},p.mid); c.restore();
       c.beginPath(); c.moveTo(u*1.5,h*.3); c.lineTo(w*.5,h*.46); c.lineTo(w-u*1.5,h*.3); c.lineTo(w-u*1.5,h-u*1.5); c.lineTo(u*1.5,h-u*1.5); c.closePath();
       c.fillStyle=p.dark; c.fill(); c.lineWidth=u*1.2; c.strokeStyle=p.ink; c.lineJoin='round'; c.stroke();
       text(c,(T.pocketTitle||'').toUpperCase(),w/2,h*.64,{family:F.display,weight:400,maxW:w*.8,maxH:h*.14,max:h*.11},'#ffffff');
@@ -527,7 +572,7 @@ Object.assign(TYPES, {
     {label:'idea slips (cut out)', aspect:1.414, board:false, draw(c,w,h,p){
       const u = Math.min(w,h)/100, cw = w/2, ch = h/3;
       for (let k = 0; k < 6; k++){ const x = (k%2)*cw, y = Math.floor(k/2)*ch;
-        text(c,(state.team.pocketTitle||'MY IDEA').toUpperCase(),x+cw/2,y+ch*.2,{family:F.display,weight:400,maxW:cw*.8,maxH:ch*.14,max:ch*.11},p.mid);
+        text(c,(state.team.pocketTitle||tr('MY IDEA')).toUpperCase(),x+cw/2,y+ch*.2,{family:F.display,weight:400,maxW:cw*.8,maxH:ch*.14,max:ch*.11},p.mid);
         c.strokeStyle='#bbbbbb'; c.lineWidth=u*.25; for (let l=0;l<3;l++){ const ly=y+ch*(.42+l*.17); c.beginPath(); c.moveTo(x+cw*.1,ly); c.lineTo(x+cw*.9,ly); c.stroke(); } }
       c.setLineDash([u*2,u*1.6]); c.lineWidth=u*.4; c.strokeStyle='#999999'; c.beginPath(); c.moveTo(w/2,0); c.lineTo(w/2,h);
       c.moveTo(0,h/3); c.lineTo(w,h/3); c.moveTo(0,2*h/3); c.lineTo(w,2*h/3); c.stroke(); c.setLineDash([]);
@@ -539,9 +584,9 @@ Object.assign(TYPES, {
     if (imgOk(M.img)) drawCover(c, M.img, x, y, pw, ph);
     else { c.fillStyle = p.mid; c.beginPath(); c.arc(w/2, y+ph*.38, pw*.17, 0, Math.PI*2); c.fill(); c.beginPath(); c.ellipse(w/2, y+ph*1.02, pw*.36, ph*.36, 0, Math.PI, 0); c.fill(); }
     c.restore(); rr(c,x,y,pw,ph,u*3); c.lineWidth = u*1.2; c.strokeStyle = p.dark; c.stroke();
-    text(c, M.name || 'Name: ______________', w/2, h*.765, {family:F.display, weight:400, maxW:w*.86, maxH:h*.08, max:h*.065}, p.ink);
+    text(c, M.name || tr('Name: ______________'), w/2, h*.765, {family:F.display, weight:400, maxW:w*.86, maxH:h*.08, max:h*.065}, p.ink);
     const bh = h*.105; rr(c, w*.07, h*.85, w*.86, bh, bh/2); c.fillStyle = p.dark; c.fill();
-    text(c, (M.role || 'Role').toUpperCase(), w/2, h*.85 + bh/2, {family:F.body, weight:900, maxW:w*.78, maxH:bh*.7, max:bh*.42}, '#ffffff');
+    text(c, (M.role || tr('Role')).toUpperCase(), w/2, h*.85 + bh/2, {family:F.body, weight:900, maxW:w*.78, maxH:bh*.7, max:bh*.42}, '#ffffff');
   }}]}
 });
 function teamItems(){
@@ -561,12 +606,13 @@ TEMPLATES.team = {name:'Team board', kind:'team', desc:'Photo cards for every me
 TEMPLATES.year = {name:'Year group board', kind:'year', desc:'Timetables, wellbeing check-in, notices, student leaders and house points.', get items(){ return yearItems(); }};
 
 /* ---------- title ---------- */
+const units = w => isAr(w) ? [w] : [...w];
 function titleLayout(c, title, maxW, maxH){
   const words = title.toUpperCase().split(/\s+/).filter(Boolean);
   for (let s = maxH; s > 8; s *= .95){
     c.font = `400 ${s}px ${F.display}`;
     const gap = s*.07, wg = s*.42;
-    const ww = words.map(w => [...w].reduce((a,ch) => a + c.measureText(ch).width + gap, -gap));
+    const ww = words.map(w => units(w).reduce((a,ch) => a + c.measureText(ch).width + gap, -gap));
     const L = [[]], lw = [0];
     words.forEach((w,i) => { const k = L.length-1; const add = (L[k].length ? wg : 0) + ww[i];
       if (L[k].length && lw[k] + add > maxW){ L.push([i]); lw.push(ww[i]); } else { L[k].push(i); lw[k] += add; } });
@@ -578,8 +624,10 @@ function titleLayout(c, title, maxW, maxH){
 function drawLetter(c, ch, x, baseY, s, p, rot){
   const w = c.measureText(ch).width;
   c.save(); c.translate(x + w/2, baseY - s*.36); c.rotate(rot);
-  c.lineJoin='round'; c.lineWidth = s*.09; c.strokeStyle = p.dark; c.strokeText(ch, -w/2, s*.36);
-  c.fillStyle = '#ffffff'; c.fillText(ch, -w/2, s*.36); c.restore();
+  c.direction = isAr(ch) ? 'rtl' : 'ltr'; if (isAr(ch)) c.textAlign = 'right';
+  const ox = isAr(ch) ? w/2 : -w/2;
+  c.lineJoin='round'; c.lineWidth = s*.09; c.strokeStyle = p.dark; c.strokeText(ch, ox, s*.36);
+  c.fillStyle = '#ffffff'; c.fillText(ch, ox, s*.36); c.restore(); c.textAlign = 'left';
   return w;
 }
 function drawTitle(c, title, cx, top, maxW, maxH, p){
@@ -588,8 +636,9 @@ function drawTitle(c, title, cx, top, maxW, maxH, p){
   let y = top + (maxH - T.L.length*T.lh)/2 + T.s*.86, n = 0;
   T.L.forEach((line, li) => {
     let x = cx - T.lw[li]/2;
-    line.forEach((wi, j) => { if (j) x += T.wg;
-      [...T.words[wi]].forEach((ch, k) => { const rot = Math.sin(n++*2.3)*.035; const w = drawLetter(c, ch, x, y, T.s, p, rot); x += w + (k < T.words[wi].length-1 ? T.gap : 0); });
+    const order = line.some(wi => isAr(T.words[wi])) ? [...line].reverse() : line;
+    order.forEach((wi, j) => { if (j) x += T.wg; const us = units(T.words[wi]);
+      us.forEach((ch, k) => { const rot = Math.sin(n++*2.3)*.035; const w = drawLetter(c, ch, x, y, T.s, p, rot); x += w + (k < us.length-1 ? T.gap : 0); });
     });
     y += T.lh;
   });
@@ -617,7 +666,8 @@ function boardRects(tplKey){
   const out = [];
   for (const [type, idx, x, y, w, h, rot] of TEMPLATES[tplKey].items){
     const key = pieceKey(tplKey, type, idx), o = state.pos[key] || [0,0];
-    out.push({key, colorKey:key, type, idx, x:x+o[0], y:y+o[1], w, h, rot});
+    const mx = state.lang === 'ar' ? 1600 - x - w : x;   // Arabic boards read right to left
+    out.push({key, colorKey:key, type, idx, x:mx+o[0], y:y+o[1], w, h, rot: state.lang === 'ar' ? -rot : rot});
   }
   const slots = freeSlots(tplKey);
   state.extras.forEach((ex, i) => {
@@ -702,12 +752,14 @@ function renderBoard(){
 }
 function renderLetters(){
   const wrap = $('#letters'); wrap.innerHTML = '';
+  wrap.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
   const p = palFor();
   state.title.toUpperCase().split(/\s+/).filter(Boolean).forEach((word, wi) => {
     if (wi) { const g = document.createElement('span'); g.className='gap'; wrap.appendChild(g); }
-    [...word].forEach(ch => {
+    units(word).forEach(ch => {
       const cv = document.createElement('canvas'); cv.title = ch;
-      const ctx = sizeCanvas(cv, 42, 42/56); ctx.fillStyle = p.backing; ctx.fillRect(0,0,cv.width,cv.height);
+      const wide = isAr(ch) ? Math.max(42, 22*ch.length) : 42; cv.style.width = wide + 'px';
+      const ctx = sizeCanvas(cv, wide, wide/56); ctx.fillStyle = p.backing; ctx.fillRect(0,0,cv.width,cv.height);
       drawLetterPage(ctx, cv.width, cv.height, p, ch, false); wrap.appendChild(cv);
     });
   });
@@ -716,7 +768,7 @@ function drawLetterPage(c, w, h, p, ch, paper){
   if (paper){ c.fillStyle='#ffffff'; c.fillRect(0,0,w,h); }
   let s = h*.78; c.font = `400 ${s}px ${F.display}`;
   const mw = c.measureText(ch).width; if (mw > w*.84){ s *= w*.84/mw; c.font = `400 ${s}px ${F.display}`; }
-  c.textAlign='center'; c.textBaseline='alphabetic'; c.lineJoin='round';
+  c.textAlign='center'; c.textBaseline='alphabetic'; c.lineJoin='round'; c.direction = isAr(ch) ? 'rtl' : 'ltr';
   c.lineWidth = s*(paper ? .025 : .09); c.strokeStyle = paper ? '#555555' : p.dark;
   const y = h/2 + s*.36;
   c.strokeText(ch, w/2, y); c.fillStyle = '#ffffff'; c.fillText(ch, w/2, y);
@@ -838,11 +890,13 @@ async function buildPdf(){
   doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(30); doc.text(safe(`${state.title} - ${TEMPLATES[state.template].name} layout on ${p.name.toLowerCase()} backing`), 10, 10);
   place(cover, 297, 210, 15);
   // letters
-  const words = state.title.toUpperCase().split(/\s+/).filter(Boolean); let total = words.join('').length, n = 0;
+  const words = state.title.toUpperCase().split(/\s+/).filter(Boolean); let total = words.reduce((a, w) => a + units(w).length, 0), n = 0;
   for (const [wi, word] of words.entries()){
-    for (const [li, ch] of [...word].entries()){
-      n++; doc.addPage('a4','portrait');
-      caption(`Title letter ${n} of ${total} · word ${wi+1} "${word}", letter ${li+1} · print on white card and cut on the outline`, 210);
+    for (const [li, ch] of units(word).entries()){
+      n++; const arw = isAr(ch); doc.addPage('a4', arw ? 'landscape' : 'portrait');
+      caption(arw ? `Title word ${wi+1} of ${words.length} (Arabic words print whole so the letters stay joined) · print on white card and cut on the outline`
+                  : `Title letter ${n} of ${total} · word ${wi+1} "${word}", letter ${li+1} · print on white card and cut on the outline`, arw ? 297 : 210);
+      if (arw){ const cv = pageCanvas(1.414, 2400); drawLetterPage(cv.getContext('2d'), cv.width, cv.height, palFor(), ch, true); place(cv, 297, 210, 12); await new Promise(r => setTimeout(r, 0)); continue; }
       const cv = pageCanvas(.72, 2000); drawLetterPage(cv.getContext('2d'), cv.width, cv.height, palFor(), ch, true);
       place(cv, 210, 297, 12);
       await new Promise(r => setTimeout(r, 0));
@@ -959,7 +1013,7 @@ function renderIB(){
     const allOn = added === g.items.length; all.textContent = allOn ? 'Remove all' : 'Add all';
     all.addEventListener('click', ev => { ev.preventDefault();
       if (allOn) state.extras = state.extras.filter(e => !e.id.startsWith(`ib-${g.id}-`));
-      else g.items.forEach((it, i) => { const id = `ib-${g.id}-${i}`; if (!state.extras.some(e => e.id === id)) state.extras.push({id, kind:'ib', group:g.short, label:it[0], icon:it[1], desc:it[2]}); });
+      else g.items.forEach((it, i) => { const id = `ib-${g.id}-${i}`; if (!state.extras.some(e => e.id === id)) state.extras.push(ibCard(g, i)); });
       renderAll(); renderIB(); });
     sum.append(sp, all); det.appendChild(sum);
     const box = document.createElement('div'); box.className='ibitems';
@@ -967,7 +1021,7 @@ function renderIB(){
       const id = `ib-${g.id}-${i}`, on = state.extras.some(e => e.id === id);
       const b = document.createElement('button'); b.type='button'; b.className='ibchip'; b.setAttribute('aria-pressed', String(on));
       b.innerHTML = iconSvg(it[1]); b.appendChild(document.createTextNode(it[0]));
-      b.addEventListener('click', () => on ? removeExtra(id) : addExtra({id, kind:'ib', group:g.short, label:it[0], icon:it[1], desc:it[2]}));
+      b.addEventListener('click', () => on ? removeExtra(id) : addExtra(ibCard(g, i)));
       box.appendChild(b);
     });
     det.appendChild(box); wrap.appendChild(det);
@@ -1014,7 +1068,7 @@ $('#form').addEventListener('submit', async e => {
     genBtn.disabled = true; genBtn.textContent = 'Writing content…';
     setStatus('Writing facts, questions and prompts for your board. This takes about 15 seconds.');
     try {
-      const r = await fetch(CONFIG.aiEndpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, idea, grade})});
+      const r = await fetch(CONFIG.aiEndpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, idea, grade, lang: state.lang})});
       if (r.ok){ raw = await r.json(); if (!raw.error) used = 'ai'; else raw = null; }
     } catch (err) { raw = null; }
     genBtn.disabled = false; genBtn.textContent = genLabel;
@@ -1033,7 +1087,7 @@ $('#dl').addEventListener('click', async () => {
   btn.disabled = true; btn.textContent = 'Building PDF…'; note.textContent = 'Drawing each page at print quality. This takes a few seconds.';
   try {
     const doc = await buildPdf();
-    const slug = state.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'board';
+    const slug = state.title.toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]+/g,'-').replace(/^-|-$/g,'') || 'board';
     doc.save(`${slug}-${state.template}-${state.backing}.pdf`);
     note.textContent = 'Downloaded. Print at 100% (actual size) on A4 white card.';
   } catch (err) {
@@ -1251,7 +1305,8 @@ function renderLibrary(){
     const h = document.createElement('div'); h.className = 'libgroup'; h.textContent = g; wrap.appendChild(h);
     const row = document.createElement('div'); row.className = 'ibitems';
     for (const b of groups[g]){
-      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ibchip'; btn.textContent = b.title;
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ibchip';
+      const BA = state.lang === 'ar' && (window.BOARD_LIBRARY_AR || {})[b.id]; btn.textContent = BA ? `${BA.title} · ${b.title}` : b.title;
       btn.setAttribute('aria-pressed', String(state.libId === b.id)); btn.title = b.idea;
       btn.addEventListener('click', () => applyLibrary(b)); row.appendChild(btn);
     }
@@ -1262,6 +1317,9 @@ function applyLibrary(b){
   if (b.boardType === 'team'){
     state.libId = b.id; state.boardType = 'team'; state.template = 'team'; state.title = b.title;
     state.team = JSON.parse(JSON.stringify(b.team));
+    const TA = state.lang === 'ar' && (window.BOARD_TEAM_AR || {})[b.id];
+    if (TA){ state.title = TA.title; ['subtitle','introHeading','introText','pocketTitle','pocketText'].forEach(k => { state.team[k] = TA[k]; });
+      state.team.members.forEach((M, i) => { M.role = TA.roleAll || (TA.roles || [])[i] || M.role; }); }
     state.team.members.forEach(M => { if (M.src && !M.img) loadImg(M.src).then(im => { M.img = im; renderAll(); }).catch(() => {}); });
     if (b.backing && PAL[b.backing]){ state.backing = b.backing; const r = document.getElementById('bk-' + b.backing); if (r) r.checked = true; }
     state.elem = b.elem && FAM[b.elem] ? b.elem : 'match';
@@ -1270,14 +1328,16 @@ function applyLibrary(b){
     toast(b.title + ' board loaded'); return;
   }
   if (state.boardType !== 'topic'){ state.boardType = 'topic'; state.template = state.topicTemplate || 'grid'; syncBoardTypeUI(); }
-  state.libId = b.id; state.title = b.title; $('#title').value = b.title; $('#idea').value = b.idea; state.idea = b.idea;
-  content = normalize(JSON.parse(JSON.stringify(b.content)), b.title, b.idea);
+  const BA = state.lang === 'ar' && (window.BOARD_LIBRARY_AR || {})[b.id];
+  const btitle = BA ? BA.title : b.title;
+  state.libId = b.id; state.title = btitle; $('#title').value = btitle; $('#idea').value = b.idea; state.idea = b.idea;
+  content = normalize(JSON.parse(JSON.stringify(BA ? BA.content : b.content)), btitle, b.idea);
   if (b.backing && PAL[b.backing]){ state.backing = b.backing; const r = document.getElementById('bk-' + b.backing); if (r) r.checked = true; }
   state.elem = b.elem && FAM[b.elem] ? b.elem : 'match';
   state.extras = state.extras.filter(e => e.kind !== 'house' && !e.fromLib);
-  (b.houses || []).forEach((hh, i) => state.extras.push({id:'house-' + i, kind:'house', label:hh.name, color:hh.color, scale:1}));
+  (b.houses || []).forEach((hh, i) => { const k = YB_DEF.en.houses.indexOf(hh.name); state.extras.push({id:'house-' + i, kind:'house', label: state.lang === 'ar' && k >= 0 ? YB_DEF.ar.houses[k] : hh.name, color:hh.color, scale:1}); });
   (b.ib || []).forEach(gid => { const g = IB.find(x => x.id === gid); if (!g) return;
-    g.items.forEach((it, i) => { const id = `ib-${g.id}-${i}`; if (!state.extras.some(e => e.id === id)) state.extras.push({id, kind:'ib', group:g.short, label:it[0], icon:it[1], desc:it[2], fromLib:true}); }); });
+    g.items.forEach((it, i) => { const id = `ib-${g.id}-${i}`; if (!state.extras.some(e => e.id === id)) state.extras.push({...ibCard(g, i), fromLib:true}); }); });
   renderColors(); renderAll(); renderIB(); renderLibrary();
   setStatus(`Loaded the ${b.title} board. Change any words in step 5, or press Next.`);
   toast(b.title + ' board loaded');
@@ -1286,9 +1346,49 @@ $('#libSearch').addEventListener('input', renderLibrary);
 function renderTeamLib(){
   const wrap = document.getElementById('teamLib'); if (!wrap) return; wrap.innerHTML = '';
   LIB.filter(b => b.boardType === 'team').forEach(b => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ibchip';
-    btn.textContent = b.title; btn.title = b.idea; btn.setAttribute('aria-pressed', String(state.libId === b.id));
+    const TA = state.lang === 'ar' && (window.BOARD_TEAM_AR || {})[b.id]; btn.textContent = TA ? `${TA.title} · ${b.title}` : b.title; btn.title = b.idea; btn.setAttribute('aria-pressed', String(state.libId === b.id));
     btn.addEventListener('click', () => { applyLibrary(b); renderTeamLib(); }); wrap.appendChild(btn); });
 }
+
+/* ---------- board language ---------- */
+const YB_DEF = {en:{headers:['Timetables','Wellbeing','Notices','Student Leadership','House Points'], mood:'How are you feeling today?', houses:['Camels','Dhows','Falcons','Khanjars'], year:'Year 8',
+  notices:['Trip forms are due on Thursday.','Library books back by Friday.']},
+  ar:{headers:['الجداول الدراسية','الرفاهية','الإعلانات','القيادة الطلابية','نقاط البيوت'], mood:'كيف تشعر اليوم؟', houses:['الجِمال','الداوات','الصقور','الخناجر'], year:'الصف الثامن',
+  notices:['آخر موعد لتسليم استمارات الرحلة يوم الخميس.','أعيدوا كتب المكتبة قبل يوم الجمعة.']}};
+function swapDefaults(from, to){
+  const Y = state.yb, A = YB_DEF[from], B = YB_DEF[to];
+  Y.headers = Y.headers.map((x, i) => x === A.headers[i] ? B.headers[i] : x);
+  if (Y.mood === A.mood) Y.mood = B.mood;
+  Y.houses.forEach(H => { const k = A.houses.indexOf(H.name); if (k >= 0) H.name = B.houses[k]; });
+  Y.notices = Y.notices.map(n => { const k = A.notices.indexOf(n); return k >= 0 ? B.notices[k] : n; });
+  const RL = {en:['Year Leader','Deputy Leader','Wellbeing Ambassador','Sports Captain','Class Representative'], ar:['قائد الصف','نائب القائد','سفير الرفاهية','قائد الرياضة','ممثل الصف']};
+  const SN = {en:'Student name', ar:'اسم الطالب'};
+  Y.leaders.forEach(L => { const k = RL[from].indexOf(L.role); if (k >= 0) L.role = RL[to][k]; if (L.name === SN[from]) L.name = SN[to]; });
+  const TM = {en:['President','Vice President','Team member'], ar:['الرئيس','نائب الرئيس','عضو الفريق']};
+  state.team.members.forEach(M => { const k = TM[from].indexOf(M.role); if (k >= 0) M.role = TM[to][k]; });
+  if (Y.year === A.year){ Y.year = B.year; if (state.boardType === 'year') state.title = Y.year; }
+}
+async function setLang(l){
+  if (l === state.lang) return;
+  const from = state.lang; state.lang = l;
+  if (l === 'ar') await Promise.all([document.fonts.load(`400 40px 'Lalezar'`), document.fonts.load(`800 20px 'Cairo'`), document.fonts.load(`900 20px 'Cairo'`)]).catch(() => {});
+  swapDefaults(from, l);
+  state.extras = state.extras.map(e => { if (e.kind !== 'ib') return e; const m = /^ib-(\w+)-(\d+)$/.exec(e.id); const g = m && IB.find(x => x.id === m[1]);
+    return g ? {...e, ...ibCard(g, +m[2])} : e; });
+  const lib = state.libId && LIB.find(b => b.id === state.libId);
+  if (lib && (lib.boardType === 'team') === (state.boardType === 'team') && state.boardType !== 'year'){ applyLibrary(lib); }
+  else if (state.boardType === 'topic' && (state.title === 'The Water Cycle' || state.title === 'دورة الماء')){
+    const ex = (window.BOARD_LIBRARY_AR || {})._example;
+    if (l === 'ar' && ex){ state.title = ex.title; content = normalize(JSON.parse(JSON.stringify(ex.content)), ex.title, ''); }
+    else { state.title = 'The Water Cycle'; content = JSON.parse(JSON.stringify(EXAMPLE)); }
+    $('#title').value = state.title;
+  } else if (state.boardType === 'topic'){
+    setStatus(l === 'ar' ? 'Board language is Arabic. Press the button to write this board in Arabic, or choose a ready-made board.' : 'Board language is English. Press the button to write this board in English.');
+  }
+  syncBoardTypeUI(); renderLibrary(); renderTeamLib(); renderIB(); renderAll();
+  toast(l === 'ar' ? 'اللوحة الآن باللغة العربية' : 'Board language: English');
+}
+document.querySelectorAll('input[name=lang]').forEach(r => r.addEventListener('change', () => setLang(r.value)));
 
 /* ---------- board type + year group form ---------- */
 let yearDefaultsApplied = false;
@@ -1432,7 +1532,7 @@ function boardData(withPictures = true){
     leaders: state.yb.leaders.map(({img, ...r}) => withPictures ? r : {...r, src: undefined}),
     tt: state.yb.tt.map(t => t && withPictures ? {src: t.src} : null)}));
   const team = {...state.team, members: state.team.members.map(({img, ...r}) => withPictures ? r : {...r, src: undefined})};
-  return {v:1, team, libId: state.libId, boardType: state.boardType, topicTemplate: state.topicTemplate, yb, title: state.title, idea: $('#idea').value, grade: $('#grade').value, backing: state.backing, template: state.template,
+  return {v:1, lang: state.lang, team, libId: state.libId, boardType: state.boardType, topicTemplate: state.topicTemplate, yb, title: state.title, idea: $('#idea').value, grade: $('#grade').value, backing: state.backing, template: state.template,
     elem: state.elem, custom: state.custom, over: state.over, pos: state.pos, content,
     extras: state.extras.filter(x => withPictures || !(x.src && x.src.startsWith('data:'))).map(({img, ...rest}) => rest)};
 }
@@ -1445,6 +1545,7 @@ function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(() => {
   } }, 600); }
 async function applyBoard(d){
   if (!d || typeof d !== 'object' || !d.content) throw new Error('not a board');
+  state.lang = d.lang === 'ar' ? 'ar' : 'en'; { const lr = document.getElementById('lang-' + state.lang); if (lr) lr.checked = true; }
   state.title = d.title || 'My Board'; state.backing = PAL[d.backing] ? d.backing : 'green'; state.template = TEMPLATES[d.template] ? d.template : 'grid';
   state.elem = FAM[d.elem] ? d.elem : 'match'; state.custom = d.custom || '#c94d86'; state.over = d.over || {}; state.pos = d.pos || {};
   content = normalize(d.content, state.title, d.idea || '');
@@ -1500,7 +1601,8 @@ $('#helpBtn').addEventListener('click', () => $('#help').showModal());
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderAll, 150); });
 const fontsReady = Promise.all([
   document.fonts.load(`400 40px 'Archivo Black'`), document.fonts.load(`800 20px 'Nunito'`),
-  document.fonts.load(`900 20px 'Nunito'`), document.fonts.load(`700 20px 'Nunito'`), document.fonts.load(`400 20px 'Gochi Hand'`)
+  document.fonts.load(`900 20px 'Nunito'`), document.fonts.load(`700 20px 'Nunito'`), document.fonts.load(`400 20px 'Gochi Hand'`),
+  document.fonts.load(`400 40px 'Lalezar'`), document.fonts.load(`800 20px 'Cairo'`), document.fonts.load(`900 20px 'Cairo'`)
 ]).catch(() => {});
 renderColors();
 renderAll();

@@ -2,6 +2,8 @@
 
 A free website that helps teachers plan a classroom bulletin board and print every piece.
 
+Boards can be made in **English or Arabic**. Choose the board language at the top of step 1: every ready-made board has a full Arabic version (`library_ar.js`), the pieces use an Arabic font and read right to left, and Arabic titles print word by word so the letters stay joined.
+
 Teachers can start from **41 ready-made boards** or type their own:
 
 - **Subjects:** English, Arabic, Islamic Education, Mathematics, Science, Biology, Chemistry, Physics, Individuals & Societies, Language Acquisition, Design, PHE, Visual Arts, Music, Drama and The Arts.
@@ -131,4 +133,5 @@ With this part, the button becomes **Write my board content**. It writes facts, 
 | `app.js` | Everything the website does |
 | `config.js` | Your settings (the AI writer address) |
 | `library.js` | The ready-made boards |
+| `library_ar.js` | Arabic versions of the ready-made boards |
 | `ai-writer/worker.js` | Optional AI writer for Cloudflare (Part 2) |

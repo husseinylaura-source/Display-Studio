@@ -7,7 +7,7 @@
 <meta name="description" content="Plan a classroom bulletin board, add pictures, icons and IB cards, and download every piece as a print-ready PDF.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Gochi+Hand&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Cairo:wght@400;600;700;800;900&family=Gochi+Hand&family=Lalezar&family=Nunito:wght@400;600;700;800;900&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -43,6 +43,13 @@
       <section class="step" data-step="1" aria-labelledby="s1h">
         <h2 id="s1h"><span class="num">1</span> What is your board about?</h2>
         <fieldset>
+          <legend>Board language · لغة اللوحة</legend>
+          <div class="swatches two langs">
+            <label class="swatch"><input type="radio" name="lang" value="en" id="lang-en" checked><span>English<small>Board in English</small></span></label>
+            <label class="swatch"><input type="radio" name="lang" value="ar" id="lang-ar"><span lang="ar" dir="rtl">العربية<small>لوحة باللغة العربية</small></span></label>
+          </div>
+        </fieldset>
+        <fieldset>
           <legend>Type of board</legend>
           <div class="swatches three">
             <label class="swatch"><input type="radio" name="btype" value="topic" id="bt-topic" checked><span>Topic board<small>A subject, unit or theme</small></span></label>
@@ -59,14 +66,14 @@
           </div>
           <p class="hint">Or type your own:</p>
           <label class="f">Board title
-            <input type="text" id="title" maxlength="40" value="The Water Cycle" required>
+            <input type="text" dir="auto" id="title" maxlength="40" value="The Water Cycle" required>
             <small>Each letter prints on its own page in bold white capitals.</small>
           </label>
           <label class="f">The idea behind it
-            <textarea id="idea" maxlength="400">How water moves around our planet through evaporation, condensation, precipitation and collection, and why it matters for life on Earth.</textarea>
+            <textarea dir="auto" id="idea" maxlength="400">How water moves around our planet through evaporation, condensation, precipitation and collection, and why it matters for life on Earth.</textarea>
           </label>
           <label class="f">Year group (optional)
-            <input type="text" id="grade" maxlength="30" value="Grade 6">
+            <input type="text" dir="auto" id="grade" maxlength="30" value="Grade 6">
           </label>
           <button class="btn" id="gen" type="submit">Write my board content</button>
           <p class="status" id="status" role="status">Showing an example board. Type your own title and idea, then press the button.</p>
@@ -78,17 +85,17 @@
             <div class="ibitems" id="teamLib"></div>
           </div>
           <label class="f">Board title
-            <input type="text" id="tmTitle" maxlength="40" value="Our Team">
+            <input type="text" dir="auto" id="tmTitle" maxlength="40" value="Our Team">
             <small>Each letter prints on its own page.</small>
           </label>
           <label class="f">Subtitle
-            <input type="text" id="tmSubtitle" maxlength="60">
+            <input type="text" dir="auto" id="tmSubtitle" maxlength="60">
           </label>
           <label class="f">Introduction heading
-            <input type="text" id="tmIntroH" maxlength="30">
+            <input type="text" dir="auto" id="tmIntroH" maxlength="30">
           </label>
           <label class="f">Introduction text
-            <textarea id="tmIntro" maxlength="300"></textarea>
+            <textarea dir="auto" id="tmIntro" maxlength="300"></textarea>
           </label>
           <fieldset>
             <legend>Team members</legend>
@@ -99,11 +106,11 @@
         </div>
         <div id="yearFields" class="stack" hidden>
           <label class="f">Year group
-            <input type="text" id="ybYear" maxlength="20" value="Year 8">
+            <input type="text" dir="auto" id="ybYear" maxlength="20" value="Year 8">
             <small>This is the big title. Each letter prints on its own page.</small>
           </label>
           <label class="f">Classes
-            <input type="text" id="ybClasses" maxlength="80" value="8A, 8B, 8C, 8D, 8E">
+            <input type="text" dir="auto" id="ybClasses" maxlength="80" value="8A, 8B, 8C, 8D, 8E">
             <small>Separate with commas, up to 6. Each class gets a timetable space.</small>
           </label>
           <div class="way">
@@ -124,11 +131,11 @@
             <button class="mini" type="button" id="ybAddLeader">Add a leader</button>
           </fieldset>
           <label class="f">Notices
-            <textarea id="ybNotices" maxlength="400"></textarea>
+            <textarea dir="auto" id="ybNotices" maxlength="400"></textarea>
             <small>One notice per line, up to 3.</small>
           </label>
           <label class="f">Wellbeing question
-            <input type="text" id="ybMood" maxlength="60" value="How are you feeling today?">
+            <input type="text" dir="auto" id="ybMood" maxlength="60" value="How are you feeling today?">
           </label>
           <p class="hint">Add each class timetable and each leader's photo under <b>Pieces to print</b>. Change any heading there too.</p>
         </div>
@@ -188,7 +195,7 @@
           </form>
           <div class="row-opts">
             <label class="f inline">Caption for the next picture (optional)
-              <input type="text" id="picCaption" maxlength="60" placeholder="e.g. Clouds form when vapour cools">
+              <input type="text" dir="auto" id="picCaption" maxlength="60" placeholder="e.g. Clouds form when vapour cools">
             </label>
           </div>
           <p class="addmsg" id="picMsg" role="status">Pictures come from Openverse and Wikimedia Commons, which are free for schools to use. The picture's credit prints with it.</p>
@@ -221,7 +228,7 @@
         <div class="pane" id="pane-icons" role="tabpanel" aria-labelledby="tab-icons" hidden>
           <div class="iconbar">
             <input type="search" id="iconSearch" placeholder="Search icons, e.g. flask, globe, heart" aria-label="Search icons">
-            <input type="text" id="iconLabel" maxlength="24" placeholder="Label under the icon (optional)" aria-label="Label under the icon">
+            <input type="text" dir="auto" id="iconLabel" maxlength="24" placeholder="Label under the icon (optional)" aria-label="Label under the icon">
             <label class="btn ghost sm" for="iconUpload">Upload your own icon</label>
             <input type="file" id="iconUpload" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
           </div>
@@ -319,6 +326,7 @@
 
 <script src="config.js"></script>
 <script src="library.js"></script>
+<script src="library_ar.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 <script src="app.js"></script>
